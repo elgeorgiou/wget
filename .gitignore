@@ -1,0 +1,96 @@
+# Go binaries
+
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Executables
+
+wget-clone
+wgetclone
+main
+
+# Build folders
+
+bin/
+dist/
+build/
+
+# Go coverage
+
+*.out
+coverage.out
+coverage.html
+cover.out
+
+# Go workspace
+
+go.work
+go.work.sum
+
+# Logs
+
+*.log
+wget-log
+
+# Temporary files
+
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+*~
+
+# Operating System files
+
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# VS Code
+
+.vscode/
+
+# Uncomment if you want to share launch/tasks/settings
+# !.vscode/extensions.json
+# !.vscode/settings.json
+# !.vscode/tasks.json
+# !.vscode/launch.json
+
+# JetBrains IDE
+
+.idea/
+
+# Vim
+
+*.un~
+
+# Test artifacts
+
+*.prof
+*.pprof
+
+# Downloaded files (optional)
+# Uncomment ONLY if you don't want downloaded websites/files committed.
+
+# downloads/
+# mirror/
+# output/
+
+# Environment files
+
+.env
+.env.*
+
+# Cache
+
+.cache/
+
+# Vendor
+# Ignore only if your project is NOT using vendoring.
+
+# vendor/
