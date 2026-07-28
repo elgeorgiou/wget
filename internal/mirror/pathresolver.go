@@ -1,5 +1,10 @@
 package mirror
 
+import (
+	"net/url"
+	"strings"
+)
+
 // ResolveLocalPath maps a URL to a local file path under hostDir.
 func ResolveLocalPath(hostDir, rawURL string) (string, error) {
 	return "", nil
@@ -7,6 +12,18 @@ func ResolveLocalPath(hostDir, rawURL string) (string, error) {
 
 // IsRejected returns true if the URL ends with any of the given suffixes (case-insensitive).
 func IsRejected(rawURL string, suffixes []string) bool {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+	lowerPath := strings.ToLower(u.Path)
+
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(lowerPath, suffix) {
+			return true
+		}
+	}
+
 	return false
 }
 
