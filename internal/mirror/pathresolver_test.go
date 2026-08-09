@@ -17,3 +17,17 @@ func TestIsRejectedCaseInsensitive(t *testing.T) {
 		t.Errorf("Expected true, got %v", result)
 	}
 }
+
+func TestIsExcludedMatch(t *testing.T) {
+	result := IsExcluded("https://example.com/js/app.js", []string{"/js"})
+	if result != true {
+		t.Errorf("Expected true, got %v", result)
+	}
+}
+
+func TestIsExcludedEdgeCase(t *testing.T) {
+	result := IsExcluded("https://example.com/csslib/", []string{"/css"})
+	if result != false {
+		t.Errorf("Expected false, got %v", result)
+	}
+}
