@@ -52,18 +52,15 @@ func TestRateLimitZeroIsUnlimited(t *testing.T) {
 	}
 }
 
-func TestRateLimiting(t *testing.T) {
-
+func TestRateLimitSlowsDown(t *testing.T) {
 	input := strings.Repeat("A", 10)
 
 	reader := strings.NewReader(input)
-
 	throttled := NewReader(reader, 5)
 
 	start := time.Now()
 
 	_, err := io.Copy(io.Discard, throttled)
-
 	if err != nil {
 		t.Fatal(err)
 	}
