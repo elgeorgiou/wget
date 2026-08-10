@@ -19,11 +19,17 @@ func NewReader(r io.Reader, bytesPerSec int64) io.Reader {
 }
 
 func (r *reader) Read(p []byte) (int, error) {
+	start := time.Now()
 
 	n, err := r.r.Read(p)
 
 	if n > 0 && r.bytesPerSec > 0 {
-		time.Sleep(time.Duration(int64(n)) * time.Second / time.Duration(r.bytesPerSec))
+		expected := time.Duration(int64(n)) * time.Second / time.Duration(r.bytesPerSec)
+		elapsed := time.Since(start)
+
+		if elapsed < expected {
+			time.Sleep(expected - elapsed)
+		}
 	}
 
 	return n, err
