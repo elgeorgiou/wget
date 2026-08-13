@@ -4,6 +4,9 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
 )
 
 type DownloadConfig struct {
@@ -23,5 +26,24 @@ func DownloadFile(cfg DownloadConfig) (savedPath string, err error) {
 	if resp.StatusCode != http.StatusOK {
 		return "", errors.New("bad status code " + resp.Status)
 	}
-	return "", nil
+	filename := ""
+	if cfg.FileName != "" {
+		filename = cfg.FileName
+	}
+	if filename == "" {
+		parsedURL, err := url.Parse(cfg.URL)
+		if err != nil {
+			return "", err
+		}
+		filename = filepath.Base(parsedURL.Path)
+	}
+	if cfg.OutputDir != "" {
+		err = os.MkdirAll(cfg.OutputDir, 0755)
+		if err != nil {
+			return "", err
+		}
+
+	}
+	savedPath = filepath.Join(cfg.OutputDir, filename)
+	return savedPath, nil
 }
