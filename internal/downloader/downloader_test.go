@@ -48,3 +48,67 @@ func TestDownloadFileStatus404(t *testing.T) {
 	}
 
 }
+func TestDownloadFileCustomName(t *testing.T) {
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+		),
+	)
+	defer server.Close()
+	cfg := DownloadConfig{
+		URL:      server.URL,
+		FileName: "test",
+	}
+	savedPath, err := DownloadFile(cfg)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if savedPath != cfg.FileName {
+		t.Errorf("Expected %v, got %v", cfg.FileName, savedPath)
+	}
+}
+func TestDownloadFileCustomDir(t *testing.T) {
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+		),
+	)
+	defer server.Close()
+	cfg := DownloadConfig{
+		URL:       server.URL + "/test.jpg",
+		OutputDir: "test",
+	}
+	savedPath, err := DownloadFile(cfg)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if savedPath != "test/test.jpg" {
+		t.Errorf("Expected test/test.jpg, got %v", savedPath)
+	}
+}
+func TestDownloadFileCombinedFlags(t *testing.T) {
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+		),
+	)
+	defer server.Close()
+	cfg := DownloadConfig{
+		URL:       server.URL + "/test.jpg",
+		FileName:  "test",
+		OutputDir: "test",
+	}
+	savedPath, err := DownloadFile(cfg)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if savedPath != "test/test" {
+		t.Errorf("Expected test/test, got %v", savedPath)
+	}
+}
