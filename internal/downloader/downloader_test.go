@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -18,8 +19,11 @@ func TestDownloadFileStatus200(t *testing.T) {
 		),
 	)
 	defer server.Close()
+	dir := t.TempDir()
 	cfg := DownloadConfig{
-		URL: server.URL,
+		URL:       server.URL,
+		OutputDir: dir,
+		FileName:  "test",
 	}
 	_, err := DownloadFile(cfg)
 	if err != nil {
@@ -58,16 +62,19 @@ func TestDownloadFileCustomName(t *testing.T) {
 		),
 	)
 	defer server.Close()
+	dir := t.TempDir()
 	cfg := DownloadConfig{
-		URL:      server.URL,
-		FileName: "test",
+		URL:       server.URL,
+		FileName:  "test",
+		OutputDir: dir,
 	}
 	savedPath, err := DownloadFile(cfg)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	if savedPath != cfg.FileName {
-		t.Errorf("Expected %v, got %v", cfg.FileName, savedPath)
+	expectedPath := filepath.Join(dir, cfg.FileName)
+	if savedPath != expectedPath {
+		t.Errorf("Expected %v, got %v", expectedPath, savedPath)
 	}
 }
 func TestDownloadFileCustomDir(t *testing.T) {
