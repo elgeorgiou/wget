@@ -45,5 +45,14 @@ func DownloadFile(cfg DownloadConfig) (savedPath string, err error) {
 
 	}
 	savedPath = filepath.Join(cfg.OutputDir, filename)
+	file, err := os.Create(savedPath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		return "", err
+	}
 	return savedPath, nil
 }
