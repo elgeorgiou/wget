@@ -31,3 +31,14 @@ func TestIsExcludedEdgeCase(t *testing.T) {
 		t.Errorf("Expected false, got %v", result)
 	}
 }
+
+func TestResolveLocalPathFile(t *testing.T) {
+	result, err := ResolveLocalPath("www.example.com", "https://www.example.com/js/app.js")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := "www.example.com/js/app.js"
+	if result != expected {
+		t.Errorf("expected %v, got %v", expected, result)
+	}
+}
