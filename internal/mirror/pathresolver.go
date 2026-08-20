@@ -2,11 +2,21 @@ package mirror
 
 import (
 	"net/url"
+	"path"
+	"path/filepath"
 	"strings"
 )
 
 // ResolveLocalPath maps a URL to a local file path under hostDir.
 func ResolveLocalPath(hostDir, rawURL string) (string, error) {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+	extension := path.Ext(parsedURL.Path)
+	if extension != "" {
+		return filepath.Join(hostDir, parsedURL.Path), nil
+	}
 	return "", nil
 }
 
