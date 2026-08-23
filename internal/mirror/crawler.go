@@ -45,11 +45,35 @@ func Mirror(
 
 		visitedURLs[currentURL] = true
 
-		_, err = dl(downloader.DownloadConfig{
+		savedPath, err := dl(downloader.DownloadConfig{
 			URL: currentURL,
 		})
+
 		if err != nil {
 			return fmt.Errorf("failed to download URL %q: %w", currentURL, err)
+		}
+
+		links, err := ExtractLinks(savedPath)
+
+		if err != nil {
+			return fmt.Errorf("failed to extract links from %q: %w", savedPath, err)
+		}
+
+		for _, link := range links {
+			linkURL, err := url.Parse(link)
+
+			if err != nil {
+				return fmt.Errorf("failed to parse link %q: %w", link, err)
+			}
+
+			absoluteURL := parsedURL.ResolveReference(linkURL)
+
+			if absoluteURL.Host != parsedURL.Host {
+				continue
+			}
+
+			pendingURLs = append(pendingURLs, absoluteURL.String())
+
 		}
 	}
 
