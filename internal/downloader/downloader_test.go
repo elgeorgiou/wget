@@ -1,6 +1,7 @@
 package downloader
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -150,5 +151,34 @@ func TestDownloadFileSavesContent(t *testing.T) {
 	if string(content) != "Hello World" {
 		t.Errorf("Expected %v, got %v", "Hello World", string(content))
 
+	}
+}
+func TestDownloadFileProgressLogged(t *testing.T) {
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("Hello World"))
+			},
+		),
+	)
+	defer server.Close()
+	buffer := bytes.Buffer{}
+	dir := t.TempDir()
+	cfg := DownloadConfig{
+		URL:       server.URL,
+		OutputDir: dir,
+		FileName:  "test",
+		Out:       &buffer,
+	}
+	_, err := DownloadFile(cfg)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if buffer.String() == "" {
+		t.Errorf("Expected progress output, got empty string")
+	}
+	if !strings.Contains(buffer.String(), "\r") {
+		t.Errorf("Expected progress output to contain carriage return")
 	}
 }
