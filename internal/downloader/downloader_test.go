@@ -28,7 +28,7 @@ func TestDownloadFileStatus200(t *testing.T) {
 	}
 	_, err := DownloadFile(cfg)
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Fatalf("Expected no error, got %v", err)
 
 	}
 }
@@ -71,7 +71,7 @@ func TestDownloadFileCustomName(t *testing.T) {
 	}
 	savedPath, err := DownloadFile(cfg)
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Fatalf("Expected no error, got %v", err)
 	}
 	expectedPath := filepath.Join(dir, cfg.FileName)
 	if savedPath != expectedPath {
@@ -87,16 +87,18 @@ func TestDownloadFileCustomDir(t *testing.T) {
 		),
 	)
 	defer server.Close()
+	dir := t.TempDir()
 	cfg := DownloadConfig{
 		URL:       server.URL + "/test.jpg",
-		OutputDir: "test",
+		OutputDir: dir,
 	}
 	savedPath, err := DownloadFile(cfg)
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Fatalf("Expected no error, got %v", err)
 	}
-	if savedPath != "test/test.jpg" {
-		t.Errorf("Expected test/test.jpg, got %v", savedPath)
+	expected := filepath.Join(dir, "test.jpg")
+	if savedPath != expected {
+		t.Errorf("Expected %v, got %v", expected, savedPath)
 	}
 }
 func TestDownloadFileCombinedFlags(t *testing.T) {
@@ -108,17 +110,19 @@ func TestDownloadFileCombinedFlags(t *testing.T) {
 		),
 	)
 	defer server.Close()
+	dir := t.TempDir()
 	cfg := DownloadConfig{
 		URL:       server.URL + "/test.jpg",
 		FileName:  "test",
-		OutputDir: "test",
+		OutputDir: dir,
 	}
 	savedPath, err := DownloadFile(cfg)
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Fatalf("Expected no error, got %v", err)
 	}
-	if savedPath != "test/test" {
-		t.Errorf("Expected test/test, got %v", savedPath)
+	expected := filepath.Join(dir, "test")
+	if savedPath != expected {
+		t.Errorf("Expected %v, got %v", expected, savedPath)
 	}
 }
 func TestDownloadFileSavesContent(t *testing.T) {
@@ -139,14 +143,15 @@ func TestDownloadFileSavesContent(t *testing.T) {
 	}
 	savedPath, err := DownloadFile(cfg)
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Fatalf("Expected no error, got %v", err)
 	}
-	if savedPath != dir+"/test.txt" {
-		t.Errorf("Expected %v, got %v", dir+"/test.txt", savedPath)
+	expected := filepath.Join(dir, "test.txt")
+	if savedPath != expected {
+		t.Errorf("Expected %v, got %v", expected, savedPath)
 	}
 	content, err := os.ReadFile(savedPath)
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Fatalf("Expected no error, got %v", err)
 	}
 	if string(content) != "Hello World" {
 		t.Errorf("Expected %v, got %v", "Hello World", string(content))
