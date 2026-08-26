@@ -2,11 +2,13 @@ package downloader
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type DownloadConfig struct {
@@ -50,9 +52,33 @@ func DownloadFile(cfg DownloadConfig) (savedPath string, err error) {
 		return "", err
 	}
 	defer file.Close()
-	_, err = io.Copy(file, resp.Body)
-	if err != nil {
-		return "", err
+	buffer := make([]byte, 64*1024)
+	var downloaded int64
+
+	total := resp.ContentLength
+	start := time.Now()
+
+	for {
+		n, err := resp.Body.Read(buffer)
+
+		if n > 0 {
+			w, err := file.Write(buffer[:n])
+			if err != nil {
+				return "", err
+			}
+			downloaded += int64(w)
+			if cfg.Out != nil {
+				elapsed := time.Since(start)
+				line := progress.Render(downloaded, total, elapsed)
+				fmt.Fprintf(cfg.Out, "\r%s", line)
+			}
+		}
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
 	}
 	return savedPath, nil
 }
