@@ -42,3 +42,27 @@ func TestResolveLocalPathFile(t *testing.T) {
 		t.Errorf("expected %v, got %v", expected, result)
 	}
 }
+
+func TestResolveLocalPathRoot(t *testing.T) {
+	result, err := ResolveLocalPath("www.example.com", "https://www.example.com/")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expected := "www.example.com/index.html"
+	if result != expected {
+		t.Errorf("expected %v, got %v", expected, result)
+	}
+}
+
+func TestResolveLocalPathNoExtension(t *testing.T) {
+	result, err := ResolveLocalPath("www.example.com", "https://www.example.com/about")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expected := "www.example.com/about/index.html"
+	if result != expected {
+		t.Errorf("expected %v, got %v", expected, result)
+	}
+}
