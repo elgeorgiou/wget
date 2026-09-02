@@ -17,7 +17,11 @@ func ResolveLocalPath(hostDir, rawURL string) (string, error) {
 	if extension != "" {
 		return filepath.Join(hostDir, parsedURL.Path), nil
 	}
-	return "", nil
+	if parsedURL.Path == "/" || parsedURL.Path == "" {
+		return filepath.Join(hostDir, "index.html"), nil
+	}
+	trimmedPath := strings.TrimRight(parsedURL.Path, "/")
+	return filepath.Join(hostDir, trimmedPath, "index.html"), nil
 }
 
 // IsRejected returns true if the URL ends with any of the given suffixes (case-insensitive).
