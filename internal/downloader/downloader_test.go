@@ -47,9 +47,9 @@ func TestDownloadFileStatus404(t *testing.T) {
 	}
 	_, err := DownloadFile(cfg)
 	if err == nil {
-		t.Fatalf("Expected error,got %v", err)
+		t.Fatalf("Expected error, got %v", err)
 	}
-	if errText := strings.Contains(err.Error(), "404"); !errText {
+	if contains404 := strings.Contains(err.Error(), "404"); !contains404 {
 		t.Errorf("Error message should contain status code 404,got %q", err.Error())
 	}
 
