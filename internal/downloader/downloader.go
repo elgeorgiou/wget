@@ -20,6 +20,10 @@ type DownloadConfig struct {
 }
 
 func DownloadFile(cfg DownloadConfig) (savedPath string, err error) {
+	if cfg.Out != nil {
+		start := time.Now().Format("2006-01-02 15:04:05")
+		fmt.Fprintf(cfg.Out, "start at %s\n", start)
+	}
 	resp, err := http.Get(cfg.URL)
 	if err != nil {
 		return "", err
@@ -79,6 +83,11 @@ func DownloadFile(cfg DownloadConfig) (savedPath string, err error) {
 		if err != nil {
 			return "", err
 		}
+	}
+	if cfg.Out != nil {
+		finished := time.Now().Format("2006-01-02 15:04:05")
+		fmt.Fprintf(cfg.Out, "\nDownloaded [%s]\n", cfg.URL)
+		fmt.Fprintf(cfg.Out, "finished at %s\n", finished)
 	}
 	return savedPath, nil
 }
