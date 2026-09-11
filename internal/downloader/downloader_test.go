@@ -210,12 +210,12 @@ func TestDownloadFileTimestamps(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	expected := "Downloaded " + server.URL
+	expected := "\nDownloaded [" + server.URL + "]\n"
 	if !strings.Contains(buffer.String(), expected) {
 		t.Errorf("Expected %v, got %v", expected, buffer.String())
 	}
 	timestampPattern := regexp.MustCompile(`\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}`)
-	matches := timestampPattern.FindAllString(buffer.String(), 2)
+	matches := timestampPattern.FindAllString(buffer.String(), -1)
 	if len(matches) != 2 {
 		t.Errorf("Expected 2 timestamps, found %d in output %q", len(matches), buffer.String())
 
