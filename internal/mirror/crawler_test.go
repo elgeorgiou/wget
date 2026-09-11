@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"wgetclone/internal/downloader"
+	downloader "wgetclone/internal/downloader"
 )
 
 func TestMirrorSinglePage(t *testing.T) {
@@ -62,6 +62,104 @@ func TestMirrorVisitedOnce(t *testing.T) {
 		t.Fatalf(
 			"expected https://example.com to be downloaded once, got %d",
 			calls["https://example.com"],
+		)
+	}
+}
+
+func TestMirrorFollowsLinks(t *testing.T) {
+	downloadedURLs := make(map[string]int)
+
+	tempDir := t.TempDir()
+
+	rootHTMLPath := filepath.Join(tempDir, "index.html")
+	aboutHTMLPath := filepath.Join(tempDir, "about.html")
+
+	rootHTML := `<a href="/about">About</a>`
+	aboutHTML := `<html><body>About page</body></html>`
+
+	err := os.WriteFile(rootHTMLPath, []byte(rootHTML), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = os.WriteFile(aboutHTMLPath, []byte(aboutHTML), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
+		downloadedURLs[cfg.URL]++
+
+		if cfg.URL == "https://example.com/about" {
+			return aboutHTMLPath, nil
+		}
+
+		return rootHTMLPath, nil
+	}
+
+	err = Mirror(
+		"https://example.com",
+		MirrorOptions{},
+		mockDownload,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if downloadedURLs["https://example.com"] != 1 {
+		t.Fatalf(
+			"expected root URL to be downloaded once, got %d",
+			downloadedURLs["https://example.com"],
+		)
+	}
+
+	if downloadedURLs["https://example.com/about"] != 1 {
+		t.Fatalf(
+			"expected about URL to be downloaded once, got %d",
+			downloadedURLs["https://example.com/about"],
+		)
+	}
+}
+
+func TestMirrorDoesNotFollowExternal(t *testing.T) {
+	downloadedURLs := make(map[string]int)
+
+	tempDir := t.TempDir()
+
+	rootHTMLPath := filepath.Join(tempDir, "index.html")
+
+	rootHTML := `<a href="https://external.com/page">External</a>`
+
+	err := os.WriteFile(rootHTMLPath, []byte(rootHTML), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
+		downloadedURLs[cfg.URL]++
+		return rootHTMLPath, nil
+	}
+
+	err = Mirror(
+		"https://example.com",
+		MirrorOptions{},
+		mockDownload,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if downloadedURLs["https://example.com"] != 1 {
+		t.Fatalf(
+			"expected root URL to be downloaded once, got %d",
+			downloadedURLs["https://example.com"],
+		)
+	}
+
+	if downloadedURLs["https://external.com/page"] != 0 {
+		t.Fatalf(
+			"expected external URL not to be downloaded, got %d downloads",
+			downloadedURLs["https://external.com/page"],
 		)
 	}
 }
