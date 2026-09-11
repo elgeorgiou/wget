@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -185,5 +186,38 @@ func TestDownloadFileProgressLogged(t *testing.T) {
 	}
 	if !strings.Contains(buffer.String(), "\r") {
 		t.Errorf("Expected progress output to contain carriage return")
+	}
+}
+func TestDownloadFileTimestamps(t *testing.T) {
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("Hello World"))
+			},
+		),
+	)
+	defer server.Close()
+	buffer := bytes.Buffer{}
+	dir := t.TempDir()
+	cfg := DownloadConfig{
+		URL:       server.URL,
+		OutputDir: dir,
+		FileName:  "test",
+		Out:       &buffer,
+	}
+	_, err := DownloadFile(cfg)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	expected := "Downloaded " + server.URL
+	if !strings.Contains(buffer.String(), expected) {
+		t.Errorf("Expected %v, got %v", expected, buffer.String())
+	}
+	timestampPattern := regexp.MustCompile(`\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}`)
+	matches := timestampPattern.FindAllString(buffer.String(), 2)
+	if len(matches) != 2 {
+		t.Errorf("Expected 2 timestamps, found %d in output %q", len(matches), buffer.String())
+
 	}
 }
