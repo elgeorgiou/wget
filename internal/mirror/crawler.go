@@ -47,6 +47,10 @@ func Mirror(
 			continue
 		}
 
+		if IsExcluded(currentURL, opts.ExcludePaths) {
+			continue
+		}
+
 		visitedURLs[currentURL] = true
 
 		savedPath, err := dl(downloader.DownloadConfig{
