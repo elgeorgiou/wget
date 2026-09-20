@@ -163,3 +163,63 @@ func TestMirrorDoesNotFollowExternal(t *testing.T) {
 		)
 	}
 }
+
+func TestMirrorRejectSuffix(t *testing.T) {
+	downloadedURLs := make(map[string]int)
+
+	tempDir := t.TempDir()
+
+	rootHTMLPath := filepath.Join(tempDir, "index.html")
+	aboutHTMLPath := filepath.Join(tempDir, "about.html")
+
+	rootHTML := `
+		<a href="/about">About</a>
+		<a href="/image.jpg">Image</a>
+	`
+	aboutHTML := `<html><body>About page</body></html>`
+
+	err := os.WriteFile(rootHTMLPath, []byte(rootHTML), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = os.WriteFile(aboutHTMLPath, []byte(aboutHTML), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
+		downloadedURLs[cfg.URL]++
+
+		if cfg.URL == "https://example.com/about" {
+			return aboutHTMLPath, nil
+		}
+
+		return rootHTMLPath, nil
+	}
+
+	err = Mirror(
+		"https://example.com",
+		MirrorOptions{
+			RejectSuffixes: []string{".jpg"},
+		},
+		mockDownload,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if downloadedURLs["https://example.com/about"] != 1 {
+		t.Fatalf(
+			"expected about URL to be downloaded once, got %d",
+			downloadedURLs["https://example.com/about"],
+		)
+	}
+
+	if downloadedURLs["https://example.com/image.jpg"] != 0 {
+		t.Fatalf(
+			"expected rejected URL not to be downloaded, got %d downloads",
+			downloadedURLs["https://example.com/image.jpg"],
+		)
+	}
+}
