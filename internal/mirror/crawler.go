@@ -43,25 +43,26 @@ func Mirror(
 			continue
 		}
 
+		if IsRejected(currentURL, opts.RejectSuffixes) {
+			continue
+		}
+
 		visitedURLs[currentURL] = true
 
 		savedPath, err := dl(downloader.DownloadConfig{
 			URL: currentURL,
 		})
-
 		if err != nil {
 			return fmt.Errorf("failed to download URL %q: %w", currentURL, err)
 		}
 
 		links, err := ExtractLinks(savedPath)
-
 		if err != nil {
 			return fmt.Errorf("failed to extract links from %q: %w", savedPath, err)
 		}
 
 		for _, link := range links {
 			linkURL, err := url.Parse(link)
-
 			if err != nil {
 				return fmt.Errorf("failed to parse link %q: %w", link, err)
 			}
@@ -73,7 +74,6 @@ func Mirror(
 			}
 
 			pendingURLs = append(pendingURLs, absoluteURL.String())
-
 		}
 	}
 
