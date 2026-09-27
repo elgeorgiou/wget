@@ -3,6 +3,7 @@ package mirror
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 
 	downloader "wgetclone/internal/downloader"
@@ -19,6 +20,22 @@ func Mirror(
 	opts MirrorOptions,
 	dl func(downloader.DownloadConfig) (string, error),
 ) error {
+	parsedRootURL, err := url.Parse(rootURL)
+	if err != nil {
+		return fmt.Errorf("failed to parse root URL %q: %w", rootURL, err)
+	}
+
+	domainDirectory := parsedRootURL.Host
+
+	err = os.MkdirAll(domainDirectory, 0755)
+	if err != nil {
+		return fmt.Errorf(
+			"failed to create domain directory %q: %w",
+			domainDirectory,
+			err,
+		)
+	}
+
 	pendingURLs := []string{rootURL}
 	visitedURLs := make(map[string]bool)
 
