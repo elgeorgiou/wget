@@ -283,3 +283,41 @@ func TestMirrorExcludePath(t *testing.T) {
 		)
 	}
 }
+
+func TestMirrorDomainFolder(t *testing.T) {
+	tempDir := t.TempDir()
+
+	htmlPath := filepath.Join(tempDir, "index.html")
+	htmlContent := `<html><body>Home page</body></html>`
+
+	err := os.WriteFile(htmlPath, []byte(htmlContent), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var receivedOutputDir string
+
+	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
+		receivedOutputDir = cfg.OutputDir
+		return htmlPath, nil
+	}
+
+	err = Mirror(
+		"https://example.com",
+		MirrorOptions{},
+		mockDownload,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedOutputDir := filepath.Join("example.com")
+
+	if receivedOutputDir != expectedOutputDir {
+		t.Fatalf(
+			"expected output directory %q, got %q",
+			expectedOutputDir,
+			receivedOutputDir,
+		)
+	}
+}
