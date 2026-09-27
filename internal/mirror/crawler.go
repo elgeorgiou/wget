@@ -71,7 +71,8 @@ func Mirror(
 		visitedURLs[currentURL] = true
 
 		savedPath, err := dl(downloader.DownloadConfig{
-			URL: currentURL,
+			URL:       currentURL,
+			OutputDir: domainDirectory,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to download URL %q: %w", currentURL, err)
