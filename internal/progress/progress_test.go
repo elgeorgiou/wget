@@ -8,7 +8,7 @@ import (
 func TestRenderSize(t *testing.T) {
 	elapsed := 2 * time.Second
 	result := Render(56370, 102400, elapsed)
-	expected := "55.05 KiB / 100.00 KiB"
+	expected := "55.05 KiB / 100.00 KiB [===========         ] 55.05%"
 	if result != expected {
 		t.Errorf("expected %v, got %v", expected, result)
 	}
