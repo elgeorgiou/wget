@@ -99,5 +99,16 @@ func Mirror(
 		}
 	}
 
+	if opts.ConvertLinks {
+		err := RewriteAll(domainDirectory)
+		if err != nil {
+			return fmt.Errorf(
+				"failed to rewrite links in %q: %w",
+				domainDirectory,
+				err,
+			)
+		}
+	}
+
 	return nil
 }
