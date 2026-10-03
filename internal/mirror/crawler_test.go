@@ -326,7 +326,7 @@ func TestMirrorConvertLinks(t *testing.T) {
 	tempDir := t.TempDir()
 
 	htmlPath := filepath.Join(tempDir, "index.html")
-	htmlContent := `<html><body>Home page</body></html>`
+	htmlContent := `<a href="https://example.com/about">About</a>`
 
 	err := os.WriteFile(htmlPath, []byte(htmlContent), 0644)
 	if err != nil {
@@ -346,5 +346,14 @@ func TestMirrorConvertLinks(t *testing.T) {
 	)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	convertedContent, err := os.ReadFile(htmlPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(convertedContent) == htmlContent {
+		t.Fatal("expected links to be rewritten when ConvertLinks is enabled")
 	}
 }
