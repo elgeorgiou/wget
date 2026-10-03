@@ -321,3 +321,30 @@ func TestMirrorDomainFolder(t *testing.T) {
 		)
 	}
 }
+
+func TestMirrorConvertLinks(t *testing.T) {
+	tempDir := t.TempDir()
+
+	htmlPath := filepath.Join(tempDir, "index.html")
+	htmlContent := `<html><body>Home page</body></html>`
+
+	err := os.WriteFile(htmlPath, []byte(htmlContent), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
+		return htmlPath, nil
+	}
+
+	err = Mirror(
+		"https://example.com",
+		MirrorOptions{
+			ConvertLinks: true,
+		},
+		mockDownload,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
