@@ -12,6 +12,7 @@ type reader struct {
 	start       time.Time
 }
 
+// NewReader wraps r and throttles reads to bytesPerSec.
 func NewReader(r io.Reader, bytesPerSec int64) io.Reader {
 	return &reader{
 		r:           r,
