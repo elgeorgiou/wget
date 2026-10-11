@@ -19,12 +19,20 @@ func NewReader(r io.Reader, bytesPerSec int64) io.Reader {
 }
 
 func (r *reader) Read(p []byte) (int, error) {
+	const maxChunkSize = 32 * 1024
+
+	if len(p) > maxChunkSize {
+		p = p[:maxChunkSize]
+	}
+
 	start := time.Now()
 
 	n, err := r.r.Read(p)
 
 	if n > 0 && r.bytesPerSec > 0 {
-		expected := time.Duration(int64(n)) * time.Second / time.Duration(r.bytesPerSec)
+		expected := time.Duration(n) * time.Second /
+			time.Duration(r.bytesPerSec)
+
 		elapsed := time.Since(start)
 
 		if elapsed < expected {
