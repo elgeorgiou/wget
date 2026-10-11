@@ -26,6 +26,11 @@ func Mirror(
 		return fmt.Errorf("failed to parse root URL %q: %w", rootURL, err)
 	}
 
+	if (parsedRootURL.Scheme != "http" && parsedRootURL.Scheme != "https") ||
+		parsedRootURL.Hostname() == "" {
+		return fmt.Errorf("invalid HTTP or HTTPS root URL %q", rootURL)
+	}
+
 	domainDirectory := parsedRootURL.Host
 
 	err = os.MkdirAll(domainDirectory, 0755)
