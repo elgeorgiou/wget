@@ -118,3 +118,30 @@ func TestRateLimitPropagatesError(t *testing.T) {
 		t.Fatalf("expected read failed, got %v", err)
 	}
 }
+
+type dataAndErrorReader struct{}
+
+func (dataAndErrorReader) Read(p []byte) (int, error) {
+	n := copy(p, []byte("Hello"))
+	return n, io.ErrUnexpectedEOF
+}
+
+func TestRateLimitPreservesDataAndError(t *testing.T) {
+	throttled := NewReader(dataAndErrorReader{}, 0)
+
+	buffer := make([]byte, 10)
+
+	n, err := throttled.Read(buffer)
+
+	if n != 5 {
+		t.Fatalf("expected 5 bytes, got %d", n)
+	}
+
+	if string(buffer[:n]) != "Hello" {
+		t.Fatalf("expected Hello, got %q", string(buffer[:n]))
+	}
+
+	if !errors.Is(err, io.ErrUnexpectedEOF) {
+		t.Fatalf("expected unexpected EOF, got %v", err)
+	}
+}
