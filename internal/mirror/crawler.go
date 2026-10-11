@@ -58,7 +58,15 @@ func Mirror(
 
 		currentURL = parsedURL.String()
 
-		if visitedURLs[currentURL] {
+		visitedKey := currentURL
+
+		if parsedURL.Path != "/" {
+			normalizedURL := *parsedURL
+			normalizedURL.Path = strings.TrimRight(normalizedURL.Path, "/")
+			visitedKey = normalizedURL.String()
+		}
+
+		if visitedURLs[visitedKey] {
 			continue
 		}
 
@@ -70,7 +78,7 @@ func Mirror(
 			continue
 		}
 
-		visitedURLs[currentURL] = true
+		visitedURLs[visitedKey] = true
 
 		savedPath, err := dl(downloader.DownloadConfig{
 			URL:       currentURL,
