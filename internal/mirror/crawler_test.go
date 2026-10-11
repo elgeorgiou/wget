@@ -9,25 +9,40 @@ import (
 )
 
 func TestMirrorSinglePage(t *testing.T) {
+	tempDir := t.TempDir()
+	htmlPath := filepath.Join(tempDir, "index.html")
+
+	err := os.WriteFile(
+		htmlPath,
+		[]byte("<html><body>Home page</body></html>"),
+		0644,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	calls := 0
 
 	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
 		calls++
-		return "index.html", nil
+		return htmlPath, nil
 	}
 
-	err := Mirror(
+	err = Mirror(
 		"https://example.com",
 		MirrorOptions{},
 		mockDownload,
 	)
-
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if calls != 1 {
 		t.Fatalf("expected 1 download, got %d", calls)
+	}
+
+	if _, err := os.Stat(htmlPath); err != nil {
+		t.Fatalf("expected saved file to exist: %v", err)
 	}
 }
 
