@@ -71,3 +71,23 @@ func TestRateLimitSlowsDown(t *testing.T) {
 		t.Fatalf("expected at least 2 seconds, got %v", elapsed)
 	}
 }
+
+func TestRateLimitMaxChunkSize(t *testing.T) {
+	const maxChunkSize = 32 * 1024
+
+	input := strings.Repeat("A", maxChunkSize+100)
+	reader := strings.NewReader(input)
+
+	throttled := NewReader(reader, 0)
+
+	buffer := make([]byte, len(input))
+
+	n, err := throttled.Read(buffer)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if n != maxChunkSize {
+		t.Fatalf("expected %d bytes, got %d", maxChunkSize, n)
+	}
+}
