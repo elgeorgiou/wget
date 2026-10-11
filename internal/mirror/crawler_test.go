@@ -372,3 +372,60 @@ func TestMirrorConvertLinks(t *testing.T) {
 		t.Fatal("expected links to be rewritten when ConvertLinks is enabled")
 	}
 }
+
+func TestMirrorNormalizesTrailingSlash(t *testing.T) {
+	tempDir := t.TempDir()
+
+	rootHTMLPath := filepath.Join(tempDir, "index.html")
+	pageHTMLPath := filepath.Join(tempDir, "page.html")
+
+	rootHTML := `
+		<a href="/page">Page</a>
+		<a href="/page/">Page with slash</a>
+	`
+
+	err := os.WriteFile(rootHTMLPath, []byte(rootHTML), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = os.WriteFile(
+		pageHTMLPath,
+		[]byte("<html><body>Page</body></html>"),
+		0644,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	downloadedURLs := make(map[string]int)
+
+	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
+		downloadedURLs[cfg.URL]++
+
+		if cfg.URL == "https://example.com" {
+			return rootHTMLPath, nil
+		}
+
+		return pageHTMLPath, nil
+	}
+
+	err = Mirror(
+		"https://example.com",
+		MirrorOptions{},
+		mockDownload,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pageDownloads := downloadedURLs["https://example.com/page"] +
+		downloadedURLs["https://example.com/page/"]
+
+	if pageDownloads != 1 {
+		t.Fatalf(
+			"expected page URLs with and without trailing slash to be downloaded once, got %d",
+			pageDownloads,
+		)
+	}
+}
