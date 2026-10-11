@@ -145,3 +145,36 @@ func TestRateLimitPreservesDataAndError(t *testing.T) {
 		t.Fatalf("expected unexpected EOF, got %v", err)
 	}
 }
+
+func TestRateLimitMultipleReads(t *testing.T) {
+	input := strings.Repeat("A", 20)
+	throttled := NewReader(strings.NewReader(input), 10)
+
+	buffer := make([]byte, 5)
+	totalBytes := 0
+
+	start := time.Now()
+
+	for {
+		n, err := throttled.Read(buffer)
+		totalBytes += n
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	elapsed := time.Since(start)
+
+	if totalBytes != len(input) {
+		t.Fatalf("expected %d bytes, got %d", len(input), totalBytes)
+	}
+
+	if elapsed < 2*time.Second {
+		t.Fatalf("expected at least 2 seconds, got %v", elapsed)
+	}
+}
