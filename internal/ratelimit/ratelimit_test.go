@@ -1,6 +1,7 @@
 package ratelimit
 
 import (
+	"errors"
 	"io"
 	"strings"
 	"testing"
@@ -89,5 +90,31 @@ func TestRateLimitMaxChunkSize(t *testing.T) {
 
 	if n != maxChunkSize {
 		t.Fatalf("expected %d bytes, got %d", maxChunkSize, n)
+	}
+}
+
+type failingReader struct{}
+
+func (failingReader) Read(p []byte) (int, error) {
+	return 0, errors.New("read failed")
+}
+
+func TestRateLimitPropagatesError(t *testing.T) {
+	throttled := NewReader(failingReader{}, 5)
+
+	buffer := make([]byte, 10)
+
+	n, err := throttled.Read(buffer)
+
+	if n != 0 {
+		t.Fatalf("expected 0 bytes, got %d", n)
+	}
+
+	if err == nil {
+		t.Fatal("expected a read error")
+	}
+
+	if err.Error() != "read failed" {
+		t.Fatalf("expected read failed, got %v", err)
 	}
 }
