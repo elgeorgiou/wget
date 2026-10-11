@@ -56,10 +56,6 @@ func Mirror(
 
 		parsedURL.Fragment = ""
 
-		if parsedURL.Path != "/" {
-			parsedURL.Path = strings.TrimRight(parsedURL.Path, "/")
-		}
-
 		currentURL = parsedURL.String()
 
 		if visitedURLs[currentURL] {
