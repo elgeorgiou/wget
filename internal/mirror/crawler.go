@@ -103,7 +103,11 @@ func Mirror(
 
 			absoluteURL := parsedURL.ResolveReference(linkURL)
 
-			if absoluteURL.Host != parsedURL.Host {
+			if absoluteURL.Scheme != "http" && absoluteURL.Scheme != "https" {
+				continue
+			}
+
+			if absoluteURL.Host != parsedRootURL.Host {
 				continue
 			}
 
