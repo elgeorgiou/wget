@@ -10,12 +10,16 @@ import (
 	downloader "wgetclone/internal/downloader"
 )
 
+// MirrorOptions holds the filtering and link conversion options for mirroring.
 type MirrorOptions struct {
 	RejectSuffixes []string
 	ExcludePaths   []string
 	ConvertLinks   bool
 }
 
+// Mirror crawls rootURL and saves all reachable same-domain assets to disk.
+// dl is injected — in production app.go passes downloader.DownloadFile.
+// Injecting avoids an import cycle and makes testing easy (pass a mock).
 func Mirror(
 	rootURL string,
 	opts MirrorOptions,
