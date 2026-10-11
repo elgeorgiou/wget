@@ -82,7 +82,10 @@ func Mirror(
 
 		extension := strings.ToLower(filepath.Ext(parsedURL.Path))
 
-		if extension != "" && extension != ".html" && extension != ".htm" {
+		if extension != "" &&
+			extension != ".html" &&
+			extension != ".htm" &&
+			extension != ".css" {
 			continue
 		}
 
