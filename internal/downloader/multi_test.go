@@ -35,7 +35,7 @@ func TestDownloadAllOneError(t *testing.T) {
 
 	failing := func(link string) error {
 		if link == "http://a.com/2" {
-			return errors.New("fail")
+			return errors.New("simulated download failure")
 		}
 		return nil
 	}
