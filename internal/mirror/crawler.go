@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	downloader "wgetclone/internal/downloader"
@@ -76,6 +77,12 @@ func Mirror(
 		})
 		if err != nil {
 			return fmt.Errorf("failed to download URL %q: %w", currentURL, err)
+		}
+
+		extension := strings.ToLower(filepath.Ext(parsedURL.Path))
+
+		if extension != "" && extension != ".html" && extension != ".htm" {
+			continue
 		}
 
 		links, err := ExtractLinks(savedPath)
