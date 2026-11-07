@@ -379,3 +379,28 @@ func TestMirrorContinuesAfterDownloadFailure(t *testing.T) {
 		t.Fatal("expected crawler to continue after failed download")
 	}
 }
+
+func TestMirrorRootTrailingSlashVisitedOnce(t *testing.T) {
+	chdirTemp(t)
+
+	calls := 0
+
+	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
+		calls++
+
+		return saveMockFile(
+			t,
+			cfg,
+			`<a href="/">Home</a>`,
+		)
+	}
+
+	err := Mirror("https://example.com", MirrorOptions{}, mockDownload)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if calls != 1 {
+		t.Fatalf("expected root page to be downloaded once, got %d", calls)
+	}
+}

@@ -66,13 +66,10 @@ func Mirror(
 		parsedURL.Fragment = ""
 		currentURL = parsedURL.String()
 
-		visitedKey := currentURL
-
-		if parsedURL.Path != "/" {
-			normalizedURL := *parsedURL
-			normalizedURL.Path = strings.TrimRight(normalizedURL.Path, "/")
-			visitedKey = normalizedURL.String()
-		}
+		normalizedURL := *parsedURL
+		normalizedURL.Path = strings.TrimRight(normalizedURL.Path, "/")
+		normalizedURL.RawPath = ""
+		visitedKey := normalizedURL.String()
 
 		if visitedURLs[visitedKey] {
 			continue
