@@ -53,13 +53,17 @@ func Mirror(
 		currentURL := pendingURLs[0]
 		pendingURLs = pendingURLs[1:]
 
+		isRoot := len(visitedURLs) == 0
+
 		parsedURL, err := url.Parse(currentURL)
 		if err != nil {
-			return fmt.Errorf("failed to parse URL %q: %w", currentURL, err)
+			if isRoot {
+				return fmt.Errorf("failed to parse URL %q: %w", currentURL, err)
+			}
+			continue
 		}
 
 		parsedURL.Fragment = ""
-
 		currentURL = parsedURL.String()
 
 		visitedKey := currentURL
@@ -86,6 +90,9 @@ func Mirror(
 
 		localPath, err := ResolveLocalPath(domainDirectory, currentURL)
 		if err != nil {
+			if isRoot {
+				return fmt.Errorf("failed to resolve local path for %q: %w", currentURL, err)
+			}
 			continue
 		}
 
@@ -94,6 +101,12 @@ func Mirror(
 			OutputDir: filepath.Dir(localPath),
 			FileName:  filepath.Base(localPath),
 		})
+		if err != nil {
+			if isRoot {
+				return fmt.Errorf("failed to download URL %q: %w", currentURL, err)
+			}
+			continue
+		}
 
 		extension := strings.ToLower(filepath.Ext(parsedURL.Path))
 
@@ -106,13 +119,16 @@ func Mirror(
 
 		links, err := ExtractLinks(savedPath)
 		if err != nil {
-			return fmt.Errorf("failed to extract links from %q: %w", savedPath, err)
+			if isRoot {
+				return fmt.Errorf("failed to extract links from %q: %w", savedPath, err)
+			}
+			continue
 		}
 
 		for _, link := range links {
 			linkURL, err := url.Parse(link)
 			if err != nil {
-				return fmt.Errorf("failed to parse link %q: %w", link, err)
+				continue
 			}
 
 			absoluteURL := parsedURL.ResolveReference(linkURL)
