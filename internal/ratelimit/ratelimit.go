@@ -36,9 +36,19 @@ func (r *reader) Read(p []byte) (int, error) {
 	if n > 0 && r.bytesPerSec > 0 {
 		r.totalBytes += int64(n)
 
-		expected := time.Duration(
-			float64(r.totalBytes) / float64(r.bytesPerSec) * float64(time.Second),
-		)
+		expectedSeconds := float64(r.totalBytes) / float64(r.bytesPerSec)
+
+		const maxDuration = time.Duration(1<<63 - 1)
+		maxSeconds := float64(maxDuration) / float64(time.Second)
+
+		var expected time.Duration
+
+		if expectedSeconds >= maxSeconds {
+			expected = maxDuration
+		} else {
+			expected = time.Duration(expectedSeconds * float64(time.Second))
+		}
+
 		elapsed := time.Since(r.start)
 
 		if elapsed < expected {
