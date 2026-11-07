@@ -84,13 +84,16 @@ func Mirror(
 
 		visitedURLs[visitedKey] = true
 
+		localPath, err := ResolveLocalPath(domainDirectory, currentURL)
+		if err != nil {
+			continue
+		}
+
 		savedPath, err := dl(downloader.DownloadConfig{
 			URL:       currentURL,
-			OutputDir: domainDirectory,
+			OutputDir: filepath.Dir(localPath),
+			FileName:  filepath.Base(localPath),
 		})
-		if err != nil {
-			return fmt.Errorf("failed to download URL %q: %w", currentURL, err)
-		}
 
 		extension := strings.ToLower(filepath.Ext(parsedURL.Path))
 
