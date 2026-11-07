@@ -14,7 +14,7 @@ func TestContentIntact(t *testing.T) {
 
 	var output strings.Builder
 
-	throttled := NewReader(reader, 5)
+	throttled := NewReader(reader, 1000000)
 
 	_, err := io.Copy(&output, throttled)
 

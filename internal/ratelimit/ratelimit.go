@@ -36,9 +36,9 @@ func (r *reader) Read(p []byte) (int, error) {
 	if n > 0 && r.bytesPerSec > 0 {
 		r.totalBytes += int64(n)
 
-		expected := time.Duration(r.totalBytes) * time.Second /
-			time.Duration(r.bytesPerSec)
-
+		expected := time.Duration(
+			float64(r.totalBytes) / float64(r.bytesPerSec) * float64(time.Second),
+		)
 		elapsed := time.Since(r.start)
 
 		if elapsed < expected {
