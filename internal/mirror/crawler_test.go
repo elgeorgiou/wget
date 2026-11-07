@@ -1,38 +1,68 @@
 package mirror
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 
-	downloader "wgetclone/internal/downloader"
+	"wgetclone/internal/downloader"
 )
 
-func TestMirrorSinglePage(t *testing.T) {
-	tempDir := t.TempDir()
-	htmlPath := filepath.Join(tempDir, "index.html")
+func chdirTemp(t *testing.T) string {
+	t.Helper()
 
-	err := os.WriteFile(
-		htmlPath,
-		[]byte("<html><body>Home page</body></html>"),
-		0644,
-	)
+	dir := t.TempDir()
+
+	old, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Cleanup(func() {
+		if err := os.Chdir(old); err != nil {
+			t.Errorf("failed to restore working directory: %v", err)
+		}
+	})
+
+	return dir
+}
+
+func saveMockFile(
+	t *testing.T,
+	cfg downloader.DownloadConfig,
+	content string,
+) (string, error) {
+	t.Helper()
+
+	if err := os.MkdirAll(cfg.OutputDir, 0755); err != nil {
+		return "", err
+	}
+
+	path := filepath.Join(cfg.OutputDir, cfg.FileName)
+
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		return "", err
+	}
+
+	return path, nil
+}
+
+func TestMirrorSinglePage(t *testing.T) {
+	chdirTemp(t)
 
 	calls := 0
 
 	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
 		calls++
-		return htmlPath, nil
+		return saveMockFile(t, cfg, "<html><body>Home page</body></html>")
 	}
 
-	err = Mirror(
-		"https://example.com",
-		MirrorOptions{},
-		mockDownload,
-	)
+	err := Mirror("https://example.com", MirrorOptions{}, mockDownload)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,183 +71,118 @@ func TestMirrorSinglePage(t *testing.T) {
 		t.Fatalf("expected 1 download, got %d", calls)
 	}
 
-	if _, err := os.Stat(htmlPath); err != nil {
+	if _, err := os.Stat("example.com/index.html"); err != nil {
 		t.Fatalf("expected saved file to exist: %v", err)
 	}
 }
 
 func TestMirrorVisitedOnce(t *testing.T) {
+	chdirTemp(t)
+
 	calls := make(map[string]int)
-
-	tempDir := t.TempDir()
-	htmlPath := filepath.Join(tempDir, "index.html")
-	htmlContent := `<a href="https://example.com">Home</a>`
-
-	err := os.WriteFile(htmlPath, []byte(htmlContent), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
 		calls[cfg.URL]++
-		return htmlPath, nil
+
+		return saveMockFile(
+			t,
+			cfg,
+			`<a href="https://example.com">Home</a>`,
+		)
 	}
 
-	err = Mirror(
-		"https://example.com",
-		MirrorOptions{},
-		mockDownload,
-	)
-
+	err := Mirror("https://example.com", MirrorOptions{}, mockDownload)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if calls["https://example.com"] != 1 {
 		t.Fatalf(
-			"expected https://example.com to be downloaded once, got %d",
+			"expected root to be downloaded once, got %d",
 			calls["https://example.com"],
 		)
 	}
 }
 
 func TestMirrorFollowsLinks(t *testing.T) {
+	chdirTemp(t)
+
 	downloadedURLs := make(map[string]int)
-
-	tempDir := t.TempDir()
-
-	rootHTMLPath := filepath.Join(tempDir, "index.html")
-	aboutHTMLPath := filepath.Join(tempDir, "about.html")
-
-	rootHTML := `<a href="/about">About</a>`
-	aboutHTML := `<html><body>About page</body></html>`
-
-	err := os.WriteFile(rootHTMLPath, []byte(rootHTML), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = os.WriteFile(aboutHTMLPath, []byte(aboutHTML), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
 		downloadedURLs[cfg.URL]++
 
 		if cfg.URL == "https://example.com/about" {
-			return aboutHTMLPath, nil
+			return saveMockFile(t, cfg, "<html><body>About page</body></html>")
 		}
 
-		return rootHTMLPath, nil
+		return saveMockFile(t, cfg, `<a href="/about">About</a>`)
 	}
 
-	err = Mirror(
-		"https://example.com",
-		MirrorOptions{},
-		mockDownload,
-	)
+	err := Mirror("https://example.com", MirrorOptions{}, mockDownload)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if downloadedURLs["https://example.com"] != 1 {
-		t.Fatalf(
-			"expected root URL to be downloaded once, got %d",
-			downloadedURLs["https://example.com"],
-		)
+		t.Fatalf("expected root to be downloaded once")
 	}
 
 	if downloadedURLs["https://example.com/about"] != 1 {
-		t.Fatalf(
-			"expected about URL to be downloaded once, got %d",
-			downloadedURLs["https://example.com/about"],
-		)
+		t.Fatalf("expected about page to be downloaded once")
 	}
 }
 
 func TestMirrorDoesNotFollowExternal(t *testing.T) {
+	chdirTemp(t)
+
 	downloadedURLs := make(map[string]int)
-
-	tempDir := t.TempDir()
-
-	rootHTMLPath := filepath.Join(tempDir, "index.html")
-
-	rootHTML := `<a href="https://external.com/page">External</a>`
-
-	err := os.WriteFile(rootHTMLPath, []byte(rootHTML), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
 		downloadedURLs[cfg.URL]++
-		return rootHTMLPath, nil
+
+		return saveMockFile(
+			t,
+			cfg,
+			`<a href="https://external.com/page">External</a>`,
+		)
 	}
 
-	err = Mirror(
-		"https://example.com",
-		MirrorOptions{},
-		mockDownload,
-	)
+	err := Mirror("https://example.com", MirrorOptions{}, mockDownload)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if downloadedURLs["https://example.com"] != 1 {
-		t.Fatalf(
-			"expected root URL to be downloaded once, got %d",
-			downloadedURLs["https://example.com"],
-		)
+		t.Fatalf("expected root to be downloaded once")
 	}
 
 	if downloadedURLs["https://external.com/page"] != 0 {
-		t.Fatalf(
-			"expected external URL not to be downloaded, got %d downloads",
-			downloadedURLs["https://external.com/page"],
-		)
+		t.Fatal("expected external URL not to be downloaded")
 	}
 }
 
 func TestMirrorRejectSuffix(t *testing.T) {
+	chdirTemp(t)
+
 	downloadedURLs := make(map[string]int)
-
-	tempDir := t.TempDir()
-
-	rootHTMLPath := filepath.Join(tempDir, "index.html")
-	aboutHTMLPath := filepath.Join(tempDir, "about.html")
-
-	rootHTML := `
-		<a href="/about">About</a>
-		<a href="/image.jpg">Image</a>
-	`
-	aboutHTML := `<html><body>About page</body></html>`
-
-	err := os.WriteFile(rootHTMLPath, []byte(rootHTML), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = os.WriteFile(aboutHTMLPath, []byte(aboutHTML), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
 		downloadedURLs[cfg.URL]++
 
 		if cfg.URL == "https://example.com/about" {
-			return aboutHTMLPath, nil
+			return saveMockFile(t, cfg, "<html>About</html>")
 		}
 
-		return rootHTMLPath, nil
+		return saveMockFile(t, cfg, `
+			<a href="/about">About</a>
+			<a href="/image.jpg">Image</a>
+		`)
 	}
 
-	err = Mirror(
+	err := Mirror(
 		"https://example.com",
-		MirrorOptions{
-			RejectSuffixes: []string{".jpg"},
-		},
+		MirrorOptions{RejectSuffixes: []string{".jpg"}},
 		mockDownload,
 	)
 	if err != nil {
@@ -225,59 +190,35 @@ func TestMirrorRejectSuffix(t *testing.T) {
 	}
 
 	if downloadedURLs["https://example.com/about"] != 1 {
-		t.Fatalf(
-			"expected about URL to be downloaded once, got %d",
-			downloadedURLs["https://example.com/about"],
-		)
+		t.Fatal("expected about page to be downloaded")
 	}
 
 	if downloadedURLs["https://example.com/image.jpg"] != 0 {
-		t.Fatalf(
-			"expected rejected URL not to be downloaded, got %d downloads",
-			downloadedURLs["https://example.com/image.jpg"],
-		)
+		t.Fatal("expected rejected image not to be downloaded")
 	}
 }
 
 func TestMirrorExcludePath(t *testing.T) {
+	chdirTemp(t)
+
 	downloadedURLs := make(map[string]int)
-
-	tempDir := t.TempDir()
-
-	rootHTMLPath := filepath.Join(tempDir, "index.html")
-	aboutHTMLPath := filepath.Join(tempDir, "about.html")
-
-	rootHTML := `
-		<a href="/about">About</a>
-		<a href="/private/secret">Private</a>
-	`
-	aboutHTML := `<html><body>About page</body></html>`
-
-	err := os.WriteFile(rootHTMLPath, []byte(rootHTML), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = os.WriteFile(aboutHTMLPath, []byte(aboutHTML), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
 		downloadedURLs[cfg.URL]++
 
 		if cfg.URL == "https://example.com/about" {
-			return aboutHTMLPath, nil
+			return saveMockFile(t, cfg, "<html>About</html>")
 		}
 
-		return rootHTMLPath, nil
+		return saveMockFile(t, cfg, `
+			<a href="/about">About</a>
+			<a href="/private/secret">Private</a>
+		`)
 	}
 
-	err = Mirror(
+	err := Mirror(
 		"https://example.com",
-		MirrorOptions{
-			ExcludePaths: []string{"/private"},
-		},
+		MirrorOptions{ExcludePaths: []string{"/private"}},
 		mockDownload,
 	)
 	if err != nil {
@@ -285,118 +226,81 @@ func TestMirrorExcludePath(t *testing.T) {
 	}
 
 	if downloadedURLs["https://example.com/about"] != 1 {
-		t.Fatalf(
-			"expected about URL to be downloaded once, got %d",
-			downloadedURLs["https://example.com/about"],
-		)
+		t.Fatal("expected about page to be downloaded")
 	}
 
 	if downloadedURLs["https://example.com/private/secret"] != 0 {
-		t.Fatalf(
-			"expected excluded URL not to be downloaded, got %d downloads",
-			downloadedURLs["https://example.com/private/secret"],
-		)
+		t.Fatal("expected private URL not to be downloaded")
 	}
 }
 
 func TestMirrorDomainFolder(t *testing.T) {
-	tempDir := t.TempDir()
-
-	htmlPath := filepath.Join(tempDir, "index.html")
-	htmlContent := `<html><body>Home page</body></html>`
-
-	err := os.WriteFile(htmlPath, []byte(htmlContent), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
+	chdirTemp(t)
 
 	var receivedOutputDir string
+	var receivedFileName string
 
 	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
 		receivedOutputDir = cfg.OutputDir
-		return htmlPath, nil
+		receivedFileName = cfg.FileName
+
+		return saveMockFile(t, cfg, "<html>Home</html>")
 	}
 
-	err = Mirror(
-		"https://example.com",
-		MirrorOptions{},
-		mockDownload,
-	)
+	err := Mirror("https://example.com", MirrorOptions{}, mockDownload)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expectedOutputDir := filepath.Join("example.com")
-
-	if receivedOutputDir != expectedOutputDir {
+	if receivedOutputDir != "example.com" {
 		t.Fatalf(
-			"expected output directory %q, got %q",
-			expectedOutputDir,
+			"expected output directory example.com, got %q",
 			receivedOutputDir,
+		)
+	}
+
+	if receivedFileName != "index.html" {
+		t.Fatalf(
+			"expected filename index.html, got %q",
+			receivedFileName,
 		)
 	}
 }
 
 func TestMirrorConvertLinks(t *testing.T) {
-	tempDir := t.TempDir()
+	chdirTemp(t)
 
-	htmlPath := filepath.Join(tempDir, "index.html")
-	htmlContent := `<a href="https://example.com/about">About</a>`
-
-	err := os.WriteFile(htmlPath, []byte(htmlContent), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
+	htmlContent := `<a href="https://example.com/about.html">About</a>`
 
 	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
-		return htmlPath, nil
+		if cfg.URL == "https://example.com/about.html" {
+			return saveMockFile(t, cfg, "<html>About page</html>")
+		}
+
+		return saveMockFile(t, cfg, htmlContent)
 	}
 
-	err = Mirror(
+	err := Mirror(
 		"https://example.com",
-		MirrorOptions{
-			ConvertLinks: true,
-		},
+		MirrorOptions{ConvertLinks: true},
 		mockDownload,
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	convertedContent, err := os.ReadFile(htmlPath)
+	convertedContent, err := os.ReadFile("example.com/index.html")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if string(convertedContent) == htmlContent {
-		t.Fatal("expected links to be rewritten when ConvertLinks is enabled")
+		t.Fatal("expected links to be rewritten")
 	}
 }
 
 func TestMirrorNormalizesTrailingSlash(t *testing.T) {
-	tempDir := t.TempDir()
-
-	rootHTMLPath := filepath.Join(tempDir, "index.html")
-	pageHTMLPath := filepath.Join(tempDir, "page.html")
-
-	rootHTML := `
-		<a href="/page">Page</a>
-		<a href="/page/">Page with slash</a>
-	`
-
-	err := os.WriteFile(rootHTMLPath, []byte(rootHTML), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = os.WriteFile(
-		pageHTMLPath,
-		[]byte("<html><body>Page</body></html>"),
-		0644,
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
+	chdirTemp(t)
 
 	downloadedURLs := make(map[string]int)
 
@@ -404,17 +308,16 @@ func TestMirrorNormalizesTrailingSlash(t *testing.T) {
 		downloadedURLs[cfg.URL]++
 
 		if cfg.URL == "https://example.com" {
-			return rootHTMLPath, nil
+			return saveMockFile(t, cfg, `
+				<a href="/page">Page</a>
+				<a href="/page/">Page with slash</a>
+			`)
 		}
 
-		return pageHTMLPath, nil
+		return saveMockFile(t, cfg, "<html>Page</html>")
 	}
 
-	err = Mirror(
-		"https://example.com",
-		MirrorOptions{},
-		mockDownload,
-	)
+	err := Mirror("https://example.com", MirrorOptions{}, mockDownload)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -424,8 +327,55 @@ func TestMirrorNormalizesTrailingSlash(t *testing.T) {
 
 	if pageDownloads != 1 {
 		t.Fatalf(
-			"expected page URLs with and without trailing slash to be downloaded once, got %d",
+			"expected page to be downloaded once, got %d",
 			pageDownloads,
 		)
+	}
+}
+
+func TestMirrorRootDownloadFailure(t *testing.T) {
+	chdirTemp(t)
+
+	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
+		return "", errors.New("download failed")
+	}
+
+	err := Mirror("https://example.com", MirrorOptions{}, mockDownload)
+
+	if err == nil {
+		t.Fatal("expected root download failure to return an error")
+	}
+}
+
+func TestMirrorContinuesAfterDownloadFailure(t *testing.T) {
+	chdirTemp(t)
+
+	downloadedURLs := make(map[string]int)
+
+	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
+		downloadedURLs[cfg.URL]++
+
+		switch cfg.URL {
+		case "https://example.com":
+			return saveMockFile(t, cfg, `
+				<a href="/broken.html">Broken</a>
+				<a href="/working.html">Working</a>
+			`)
+		case "https://example.com/broken.html":
+			return "", errors.New("404 not found")
+		case "https://example.com/working.html":
+			return saveMockFile(t, cfg, "<html>Working</html>")
+		default:
+			return "", errors.New("unexpected URL")
+		}
+	}
+
+	err := Mirror("https://example.com", MirrorOptions{}, mockDownload)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if downloadedURLs["https://example.com/working.html"] != 1 {
+		t.Fatal("expected crawler to continue after failed download")
 	}
 }
