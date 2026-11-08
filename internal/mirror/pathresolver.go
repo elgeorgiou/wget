@@ -7,7 +7,10 @@ import (
 	"strings"
 )
 
-// ResolveLocalPath maps a URL to a local file path under hostDir.
+// ResolveLocalPath maps a URL to a local file path under hostDir. URLs whose
+// path has a file extension keep their path; the site root and directory-style
+// URLs map to an index.html inside the matching folder. It returns an error if
+// rawURL cannot be parsed.
 func ResolveLocalPath(hostDir, rawURL string) (string, error) {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
