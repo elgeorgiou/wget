@@ -8,6 +8,7 @@ import (
 
 // Render returns a formatted progress bar line for the given state.
 // The caller writes it using \r to rewrite in place.
+// It expects total and elapsed to be greater than zero.
 func Render(downloaded, total int64, elapsed time.Duration) string {
 	downloadedKiB := float64(downloaded) / 1024
 	totalKiB := float64(total) / 1024
