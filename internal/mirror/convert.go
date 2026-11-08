@@ -6,8 +6,10 @@ import (
 	"strings"
 )
 
-// RewriteAll walks hostDir and rewrites absolute href/src values in
-// every .html and .css file to relative local paths.
+// RewriteAll walks hostDir and rewrites absolute href/src values in every
+// .html and .css file to relative local paths. Other files are left unchanged.
+// Links are rewritten relative to hostDir, so pages in subfolders are not
+// adjusted.
 func RewriteAll(hostDir string) error {
 	host := filepath.Base(hostDir)
 
