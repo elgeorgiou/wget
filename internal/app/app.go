@@ -1,3 +1,11 @@
+// Package app provides command-line argument parsing and execution
+// coordination for the wget clone.
+//
+// It processes download options, configures output destinations and rate
+// limits, and dispatches requests to the appropriate download operation.
+//
+// The package supports single-file downloads, concurrent downloads from
+// a URL list, background logging, and recursive website mirroring.
 package app
 
 import (
@@ -12,6 +20,24 @@ import (
 	"wgetclone/internal/mirror"
 )
 
+// Run parses command-line arguments and executes the requested download operation.
+//
+// The function configures command-line flags, selects the output destination,
+// validates rate-limit values, and dispatches execution based on the supplied
+// options. It supports downloading a single file, downloading multiple URLs
+// concurrently from an input file, and mirroring a website.
+//
+// When background mode is enabled, Run redirects download output to a
+// "wget-log" file and writes a notification to standard output.
+//
+// Parameters:
+// - args: Command-line arguments, excluding the executable name.
+// - stdout: Writer for standard output and background-mode notifications.
+// - stderr: Writer provided for standard error output.
+//
+// Returns:
+// - An error if argument parsing, configuration, or a download operation fails.
+// - Nil if the requested operation completes successfully.
 func Run(args []string, stdout, stderr io.Writer) error {
 	var output io.Writer
 	output = stdout
@@ -66,6 +92,7 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		}
 		rateBytes = partNumber * multiplier
 	}
+	// Handle multi-file downloads before single-file and mirror operations.
 	if *inputFile != "" {
 		content, err := os.ReadFile(*inputFile)
 		if err != nil {
@@ -89,6 +116,7 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	if len(remainingArgs) == 0 {
 		return errors.New("no URL provided")
 	}
+	// Dispatch mirror requests separately from single-file downloads.
 	if *mirrorFlag {
 		var rejectSuffixes []string
 		if *reject != "" {
