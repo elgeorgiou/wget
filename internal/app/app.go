@@ -47,10 +47,10 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		part := (*ratelimit)
 		switch suffix {
 		case 'k':
-			multiplier = 1024
+			multiplier = 1000
 			part = (*ratelimit)[:len(*ratelimit)-1]
 		case 'M':
-			multiplier = 1024 * 1024
+			multiplier = 1000 * 1000
 			part = (*ratelimit)[:len(*ratelimit)-1]
 		default:
 			if suffix < '0' || suffix > '9' {
@@ -59,7 +59,10 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		}
 		partNumber, err := strconv.ParseInt(part, 10, 64)
 		if err != nil {
-			return err
+			return errors.New("invalid rate-limit value")
+		}
+		if partNumber <= 0 {
+			return errors.New("rate-limit must be positive")
 		}
 		rateBytes = partNumber * multiplier
 	}
