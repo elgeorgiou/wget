@@ -44,7 +44,7 @@ func DownloadFile(cfg DownloadConfig) (savedPath string, err error) {
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return "", errors.New("bad status code " + resp.Status)
+		return "", errors.New("status " + resp.Status)
 	}
 	filename := ""
 	if cfg.FileName != "" {
