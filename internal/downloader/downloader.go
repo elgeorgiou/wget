@@ -61,9 +61,9 @@ func DownloadFile(cfg DownloadConfig) (savedPath string, err error) {
 		}
 		filename = name
 	}
+	originalDir := cfg.OutputDir
 	if strings.HasPrefix(cfg.OutputDir, "~/") {
 		home, err := os.UserHomeDir()
-
 		if err != nil {
 			return "", err
 		}
@@ -74,11 +74,15 @@ func DownloadFile(cfg DownloadConfig) (savedPath string, err error) {
 		if err != nil {
 			return "", err
 		}
-
 	}
 	savedPath = filepath.Join(cfg.OutputDir, filename)
+
+	display := filepath.Join(originalDir, filename)
+	if originalDir == "" {
+		display = "./" + filename
+	}
 	if cfg.Out != nil {
-		fmt.Fprintf(cfg.Out, "saving file to: %s\n", savedPath)
+		fmt.Fprintf(cfg.Out, "saving file to: %s\n", display)
 	}
 	file, err := os.Create(savedPath)
 	if err != nil {
