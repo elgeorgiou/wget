@@ -210,7 +210,7 @@ func TestDownloadFileTimestamps(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	expected := "\nDownloaded [" + server.URL + "]\n"
+	expected := "\n\nDownloaded [" + server.URL + "]\n"
 	if !strings.Contains(buffer.String(), expected) {
 		t.Errorf("Expected %v, got %v", expected, buffer.String())
 	}

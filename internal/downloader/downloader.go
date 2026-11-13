@@ -122,7 +122,7 @@ func DownloadFile(cfg DownloadConfig) (savedPath string, err error) {
 	}
 	if cfg.Out != nil {
 		if !cfg.NoProgress && total > 0 && downloaded > 0 {
-			fmt.Fprint(cfg.Out, "\n")
+			fmt.Fprint(cfg.Out, "\n\n")
 		}
 		finished := time.Now().Format("2006-01-02 15:04:05")
 		fmt.Fprintf(cfg.Out, "Downloaded [%s]\n", cfg.URL)
