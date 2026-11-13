@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"wgetclone/internal/downloader"
+	"wgetclone/internal/mirror"
 )
 
 func Run(args []string, stdout, stderr io.Writer) error {
@@ -19,6 +20,13 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	background := flags.Bool("B", false, "download in the background")
 	ratelimit := flags.String("rate-limit", "", "ratelimit")
 	inputFile := flags.String("i", "", "inputfile")
+	outputDir := flags.String("P", "", "output directory")
+	mirrorFlag := flags.Bool("mirror", false, "mirror a website")
+	reject := flags.String("R", "", "file suffixes to reject")
+	rejectLong := flags.String("reject", "", "file suffixes to reject")
+	exclude := flags.String("X", "", "exclude directories")
+	excludeLong := flags.String("exclude", "", "exclude directories")
+	convertLinks := flags.Bool("convert-links", false, "convert links for offline viewing")
 	err := flags.Parse(args)
 	if err != nil {
 		return err
@@ -73,11 +81,39 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	if len(remainingArgs) == 0 {
 		return errors.New("no URL provided")
 	}
+	if *mirrorFlag {
+		var rejectSuffixes []string
+		if *reject != "" {
+			rejectSuffixes = strings.Split(*reject, ",")
+		}
+		if *rejectLong != "" {
+			rejectSuffixes = append(rejectSuffixes, strings.Split(*rejectLong, ",")...)
+		}
+		var excludePaths []string
+		if *exclude != "" {
+			excludePaths = strings.Split(*exclude, ",")
+		}
+		if *excludeLong != "" {
+			excludePaths = append(excludePaths, strings.Split(*excludeLong, ",")...)
+		}
+		opts := mirror.MirrorOptions{
+			RejectSuffixes: rejectSuffixes,
+			ExcludePaths:   excludePaths,
+			ConvertLinks:   *convertLinks,
+		}
+		err = mirror.Mirror(remainingArgs[0], opts, downloader.DownloadFile)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 	cfg := downloader.DownloadConfig{
-		URL:       remainingArgs[0],
-		FileName:  *outputName,
-		RateLimit: rateBytes,
-		Out:       output,
+		URL:        remainingArgs[0],
+		OutputDir:  *outputDir,
+		FileName:   *outputName,
+		RateLimit:  rateBytes,
+		Out:        output,
+		NoProgress: *background,
 	}
 
 	_, err = downloader.DownloadFile(cfg)
