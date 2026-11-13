@@ -44,7 +44,7 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	if *ratelimit != "" {
 		suffix := (*ratelimit)[len(*ratelimit)-1]
 		multiplier := int64(1)
-		part := (*ratelimit)[:len(*ratelimit)]
+		part := (*ratelimit)
 		switch suffix {
 		case 'k':
 			multiplier = 1024
@@ -52,6 +52,10 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		case 'M':
 			multiplier = 1024 * 1024
 			part = (*ratelimit)[:len(*ratelimit)-1]
+		default:
+			if suffix < '0' || suffix > '9' {
+				return errors.New("invalid rate-limit suffix, use k or M")
+			}
 		}
 		partNumber, err := strconv.ParseInt(part, 10, 64)
 		if err != nil {
@@ -66,8 +70,9 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		}
 		urls := strings.Fields(string(content))
 		basecfg := downloader.DownloadConfig{
-			RateLimit: rateBytes,
-			Out:       output,
+			RateLimit:  rateBytes,
+			Out:        output,
+			NoProgress: *background,
 		}
 		errs := downloader.DownloadAll(urls, basecfg)
 		for _, err := range errs {
