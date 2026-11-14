@@ -105,3 +105,90 @@ func TestExtractLinksCSS(t *testing.T) {
 		t.Errorf("expected link '/images/bg.jpg', got '%s'", links[0])
 	}
 }
+func TestExtractLinksSingleQuotes(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "index.html")
+
+	if err := os.WriteFile(path, []byte(`<a href='/about'>About</a>`), 0644); err != nil {
+		t.Fatalf("expected no error, got %s", err)
+	}
+
+	links, err := ExtractLinks(path)
+	if err != nil {
+		t.Fatalf("expected no error, got %s", err)
+	}
+
+	if len(links) != 1 {
+		t.Fatalf("expected one link, got %d", len(links))
+	}
+
+	if links[0] != "/about" {
+		t.Errorf("expected link '/about', got '%s'", links[0])
+	}
+}
+
+func TestExtractLinksUnquoted(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "index.html")
+
+	if err := os.WriteFile(path, []byte(`<a href=/about>About</a>`), 0644); err != nil {
+		t.Fatalf("expected no error, got %s", err)
+	}
+
+	links, err := ExtractLinks(path)
+	if err != nil {
+		t.Fatalf("expected no error, got %s", err)
+	}
+
+	if len(links) != 1 {
+		t.Fatalf("expected one link, got %d", len(links))
+	}
+
+	if links[0] != "/about" {
+		t.Errorf("expected link '/about', got '%s'", links[0])
+	}
+}
+
+func TestExtractLinksCSSUnquoted(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "style.css")
+
+	if err := os.WriteFile(path, []byte(`body { background: url(img/bg.png); }`), 0644); err != nil {
+		t.Fatalf("expected no error, got %s", err)
+	}
+
+	links, err := ExtractLinks(path)
+	if err != nil {
+		t.Fatalf("expected no error, got %s", err)
+	}
+
+	if len(links) != 1 {
+		t.Fatalf("expected one link, got %d", len(links))
+	}
+
+	if links[0] != "img/bg.png" {
+		t.Errorf("expected link 'img/bg.png', got '%s'", links[0])
+	}
+}
+
+func TestExtractLinksEntities(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "index.html")
+
+	if err := os.WriteFile(path, []byte(`<a href="/search?a=1&amp;b=2">Search</a>`), 0644); err != nil {
+		t.Fatalf("expected no error, got %s", err)
+	}
+
+	links, err := ExtractLinks(path)
+	if err != nil {
+		t.Fatalf("expected no error, got %s", err)
+	}
+
+	if len(links) != 1 {
+		t.Fatalf("expected one link, got %d", len(links))
+	}
+
+	if links[0] != "/search?a=1&b=2" {
+		t.Errorf("expected link '/search?a=1&b=2', got '%s'", links[0])
+	}
+}
