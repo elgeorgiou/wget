@@ -6,14 +6,17 @@
 package mirror
 
 import (
+	"html"
 	"os"
 	"regexp"
+	"strings"
 )
 
-// ExtractLinks extracts unique resource references from a local HTML file.
+// ExtractLinks extracts unique resource references from a local HTML or CSS file.
 //
-// It reads the file and uses regular expressions to find double-quoted
+// It reads the file and uses regular expressions to find quoted and unquoted
 // href attributes, src attributes, and CSS url() references.
+// HTML entities are decoded in the extracted values.
 // The extracted values are returned in the order they are discovered,
 // with duplicate values removed.
 //
@@ -31,39 +34,49 @@ func ExtractLinks(path string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	html := string(content)
+	text := string(content)
 
-	// Match double-quoted href, src, and CSS url() references separately.
-	hrefPattern := regexp.MustCompile(`href="([^"]+)"`)
-	srcPattern := regexp.MustCompile(`src="([^"]+)"`)
-	cssPattern := regexp.MustCompile(`url\("([^"]+)"\)`)
-	matches := hrefPattern.FindAllStringSubmatch(html, -1)
-	srcmatches := srcPattern.FindAllStringSubmatch(html, -1)
-	cssmatches := cssPattern.FindAllStringSubmatch(html, -1)
+	// Match href, src, and CSS url() references with or without quotes.
+	attrPattern := regexp.MustCompile(`(?i)\b(?:href|src)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))`)
+	cssPattern := regexp.MustCompile(`(?i)url\(\s*["']?([^"')\s]+)["']?\s*\)`)
+
+	matches := attrPattern.FindAllStringSubmatch(text, -1)
+	cssmatches := cssPattern.FindAllStringSubmatch(text, -1)
+
 	var links []string
 	seen := make(map[string]bool)
 
 	// Preserve discovery order while using seen to skip duplicate references.
 	for _, link := range matches {
-		if seen[link[1]] {
+		var value string
+
+		for _, group := range link[1:] {
+			if group != "" {
+				value = group
+				break
+			}
+		}
+
+		value = strings.TrimSpace(html.UnescapeString(value))
+
+		if value == "" || seen[value] {
 			continue
 		}
-		seen[link[1]] = true
-		links = append(links, link[1])
+
+		seen[value] = true
+		links = append(links, value)
 	}
-	for _, link := range srcmatches {
-		if seen[link[1]] {
-			continue
-		}
-		seen[link[1]] = true
-		links = append(links, link[1])
-	}
+
 	for _, link := range cssmatches {
-		if seen[link[1]] {
+		value := strings.TrimSpace(html.UnescapeString(link[1]))
+
+		if value == "" || seen[value] {
 			continue
 		}
-		seen[link[1]] = true
-		links = append(links, link[1])
+
+		seen[value] = true
+		links = append(links, value)
 	}
+
 	return links, nil
 }
