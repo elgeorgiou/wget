@@ -6,8 +6,9 @@ import (
 )
 
 // DownloadAll downloads all urls concurrently, one goroutine per url. Each
-// download gets its own copy of baseCfg with URL set to that url. Output of
-// each download is buffered and written to baseCfg.Out as one block once the
+// download gets its own copy of baseCfg with URL set to that url and FileName
+// cleared, so every file keeps the name from its own url. Output of each
+// download is buffered and written to baseCfg.Out as one block once the
 // download finishes, so concurrent downloads never interleave their output.
 // It returns one error per url, in the same order as urls (nil on success).
 func DownloadAll(urls []string, baseCfg DownloadConfig) []error {
@@ -22,6 +23,7 @@ func DownloadAll(urls []string, baseCfg DownloadConfig) []error {
 
 			cfg := baseCfg
 			cfg.URL = link
+			cfg.FileName = ""
 
 			var buf bytes.Buffer
 			if baseCfg.Out != nil {
