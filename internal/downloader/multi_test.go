@@ -118,3 +118,25 @@ func TestDownloadAllConcurrentOutput(t *testing.T) {
 		}
 	}
 }
+
+// A FileName in baseCfg (-O) must not make every download write the same file.
+func TestDownloadAllIgnoresFileName(t *testing.T) {
+	srv := newTestServer(t, 0)
+	dir := t.TempDir()
+	urls := []string{srv.URL + "/a.txt", srv.URL + "/b.txt"}
+
+	errs := DownloadAll(urls, DownloadConfig{OutputDir: dir, FileName: "same.txt"})
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("url %d: unexpected error %v", i, err)
+		}
+	}
+	for _, name := range []string{"a.txt", "b.txt"} {
+		if _, err := os.Stat(filepath.Join(dir, name)); err != nil {
+			t.Errorf("expected %s to be saved: %v", name, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(dir, "same.txt")); !os.IsNotExist(err) {
+		t.Errorf("expected same.txt not to exist")
+	}
+}
