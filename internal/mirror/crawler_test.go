@@ -471,3 +471,107 @@ func TestMirrorLogsSkippedDownload(t *testing.T) {
 		t.Fatalf("expected skipped URL to be logged, got %q", buf.String())
 	}
 }
+
+func TestMirrorRejectsPathTraversal(t *testing.T) {
+	chdirTemp(t)
+
+	downloadedURLs := make(map[string]int)
+
+	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
+		downloadedURLs[cfg.URL]++
+		return saveMockFile(t, cfg, `<a href="/%2e%2e/%2e%2e/x">Escape</a>`)
+	}
+
+	err := Mirror("https://example.com", MirrorOptions{}, mockDownload)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(downloadedURLs) != 1 {
+		t.Fatalf("expected only the root download, got %v", downloadedURLs)
+	}
+}
+
+func TestMirrorHostIsCaseInsensitive(t *testing.T) {
+	chdirTemp(t)
+
+	downloadedURLs := make(map[string]int)
+
+	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
+		downloadedURLs[cfg.URL]++
+
+		if cfg.URL == "https://example.com" {
+			return saveMockFile(t, cfg, `<a href="https://EXAMPLE.com/about">About</a>`)
+		}
+
+		return saveMockFile(t, cfg, "<html>About</html>")
+	}
+
+	err := Mirror("https://example.com", MirrorOptions{}, mockDownload)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if downloadedURLs["https://example.com/about"] != 1 {
+		t.Fatalf("expected about to be downloaded once, got %v", downloadedURLs)
+	}
+}
+
+func TestMirrorSchemeDoesNotCreateDuplicates(t *testing.T) {
+	chdirTemp(t)
+
+	downloadedURLs := make(map[string]int)
+
+	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
+		downloadedURLs[cfg.URL]++
+
+		if cfg.URL == "https://example.com" {
+			return saveMockFile(t, cfg, `
+				<a href="http://example.com/about">A</a>
+				<a href="https://example.com/about">B</a>
+			`)
+		}
+
+		return saveMockFile(t, cfg, "<html>About</html>")
+	}
+
+	err := Mirror("https://example.com", MirrorOptions{}, mockDownload)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	total := downloadedURLs["http://example.com/about"] +
+		downloadedURLs["https://example.com/about"]
+
+	if total != 1 {
+		t.Fatalf("expected about to be downloaded once, got %d", total)
+	}
+}
+
+func TestMirrorParsesHTMLWithUnknownExtension(t *testing.T) {
+	chdirTemp(t)
+
+	downloadedURLs := make(map[string]int)
+
+	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
+		downloadedURLs[cfg.URL]++
+
+		switch cfg.URL {
+		case "https://example.com":
+			return saveMockFile(t, cfg, `<a href="/page.php">Page</a>`)
+		case "https://example.com/page.php":
+			return saveMockFile(t, cfg, `<html><a href="/next.html">Next</a></html>`)
+		default:
+			return saveMockFile(t, cfg, "<html>Next</html>")
+		}
+	}
+
+	err := Mirror("https://example.com", MirrorOptions{}, mockDownload)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if downloadedURLs["https://example.com/next.html"] != 1 {
+		t.Fatal("expected links inside page.php to be followed")
+	}
+}
