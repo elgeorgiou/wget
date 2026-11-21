@@ -3,6 +3,7 @@ package mirror
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -16,6 +17,7 @@ type MirrorOptions struct {
 	RejectSuffixes []string
 	ExcludePaths   []string
 	ConvertLinks   bool
+	Out            io.Writer // NEW: log destination; nil discards output
 }
 
 // Mirror crawls rootURL and saves reachable same-domain resources to disk.
@@ -47,6 +49,12 @@ func Mirror(
 		)
 	}
 
+	// NEW: a nil writer must not crash the downloader.
+	out := opts.Out
+	if out == nil {
+		out = io.Discard
+	}
+
 	pendingURLs := []string{rootURL}
 	visitedURLs := make(map[string]bool)
 
@@ -65,9 +73,11 @@ func Mirror(
 		}
 
 		parsedURL.Fragment = ""
+		parsedURL.Host = strings.ToLower(parsedURL.Host) // NEW
 		currentURL = parsedURL.String()
 
 		normalizedURL := *parsedURL
+		normalizedURL.Scheme = "https" // NEW: http and https share one visited key
 		normalizedURL.Path = strings.TrimRight(normalizedURL.Path, "/")
 
 		if normalizedURL.Path == "" {
@@ -98,26 +108,30 @@ func Mirror(
 			continue
 		}
 
+		// NEW: never write outside the host directory (e.g. /%2e%2e/x).
+		rel, err := filepath.Rel(domainDirectory, localPath)
+		if err != nil || rel == ".." ||
+			strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			continue
+		}
+
 		savedPath, err := dl(downloader.DownloadConfig{
 			URL:       currentURL,
 			OutputDir: filepath.Dir(localPath),
 			FileName:  filepath.Base(localPath),
-			Out:       io.Discard,
+			Out:       out, // NEW: was io.Discard
 		})
 
 		if err != nil {
 			if isRoot {
 				return fmt.Errorf("failed to download URL %q: %w", currentURL, err)
 			}
+			fmt.Fprintf(out, "skipping %s: %v\n", currentURL, err) // NEW
 			continue
 		}
 
-		extension := strings.ToLower(filepath.Ext(parsedURL.Path))
-
-		if extension != "" &&
-			extension != ".html" &&
-			extension != ".htm" &&
-			extension != ".css" {
+		// NEW: replaces the extension-only check.
+		if !shouldParse(parsedURL.Path, savedPath) {
 			continue
 		}
 
@@ -141,7 +155,8 @@ func Mirror(
 				continue
 			}
 
-			if absoluteURL.Host != parsedRootURL.Host {
+			// NEW: EqualFold instead of !=
+			if !strings.EqualFold(absoluteURL.Host, parsedRootURL.Host) {
 				continue
 			}
 
@@ -161,4 +176,25 @@ func Mirror(
 	}
 
 	return nil
+}
+
+// shouldParse reports whether the saved file may contain links. Known HTML/CSS
+// extensions and extensionless paths are parsed; any other extension is parsed
+// only if the file content looks like HTML (e.g. page.php).
+func shouldParse(urlPath, savedPath string) bool {
+	switch strings.ToLower(filepath.Ext(urlPath)) {
+	case "", ".html", ".htm", ".css":
+		return true
+	}
+
+	file, err := os.Open(savedPath)
+	if err != nil {
+		return false
+	}
+	defer file.Close()
+
+	buf := make([]byte, 512)
+	n, _ := io.ReadFull(file, buf)
+
+	return strings.HasPrefix(http.DetectContentType(buf[:n]), "text/html")
 }
