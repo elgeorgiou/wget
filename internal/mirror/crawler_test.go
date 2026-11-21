@@ -294,8 +294,14 @@ func TestMirrorConvertLinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if string(convertedContent) == htmlContent {
-		t.Fatal("expected links to be rewritten")
+	expectedLink := `href="about"`
+
+	if !strings.Contains(string(convertedContent), expectedLink) {
+		t.Fatalf(
+			"expected converted link %q, got %q",
+			expectedLink,
+			string(convertedContent),
+		)
 	}
 }
 
