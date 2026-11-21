@@ -1,12 +1,13 @@
 package mirror
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
+	
 	"wgetclone/internal/downloader"
 )
 
@@ -409,5 +410,64 @@ func TestMirrorRootTrailingSlashVisitedOnce(t *testing.T) {
 
 	if calls != 1 {
 		t.Fatalf("expected root page to be downloaded once, got %d", calls)
+	}
+}
+
+
+func TestMirrorPassesOutToDownloader(t *testing.T) {
+	chdirTemp(t)
+
+	var buf bytes.Buffer
+	var received io.Writer
+
+	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
+		received = cfg.Out
+		return saveMockFile(t, cfg, "<html>Home</html>")
+	}
+
+	err := Mirror("https://example.com", MirrorOptions{Out: &buf}, mockDownload)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if received != &buf {
+		t.Fatal("expected Out from options to be passed to the downloader")
+	}
+}
+
+func TestMirrorNilOutIsSafe(t *testing.T) {
+	chdirTemp(t)
+
+	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
+		if cfg.Out == nil {
+			t.Error("expected non-nil Out when options Out is nil")
+		}
+		return saveMockFile(t, cfg, "<html>Home</html>")
+	}
+
+	if err := Mirror("https://example.com", MirrorOptions{}, mockDownload); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMirrorLogsSkippedDownload(t *testing.T) {
+	chdirTemp(t)
+
+	var buf bytes.Buffer
+
+	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
+		if cfg.URL == "https://example.com/broken.html" {
+			return "", errors.New("404 not found")
+		}
+		return saveMockFile(t, cfg, `<a href="/broken.html">Broken</a>`)
+	}
+
+	err := Mirror("https://example.com", MirrorOptions{Out: &buf}, mockDownload)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(buf.String(), "broken.html") {
+		t.Fatalf("expected skipped URL to be logged, got %q", buf.String())
 	}
 }
