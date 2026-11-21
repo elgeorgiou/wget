@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	downloader "wgetclone/internal/downloader"
+	"wgetclone/internal/downloader"
 )
 
 // MirrorOptions holds the filtering and link conversion options for mirroring.
