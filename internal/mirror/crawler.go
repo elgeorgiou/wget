@@ -17,9 +17,9 @@ type MirrorOptions struct {
 	ConvertLinks   bool
 }
 
-// Mirror crawls rootURL and saves all reachable same-domain assets to disk.
-// dl is injected — in production app.go passes downloader.DownloadFile.
-// Injecting avoids an import cycle and makes testing easy (pass a mock).
+// Mirror crawls rootURL and saves reachable same-domain resources to disk.
+// The injected dl function downloads each resource and allows testing
+// without making real HTTP requests.
 func Mirror(
 	rootURL string,
 	opts MirrorOptions,
