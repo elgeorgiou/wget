@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func TestContentIntact(t *testing.T) {
+func TestRateLimitContentIntact(t *testing.T) {
 	input := "Hello World"
 	reader := strings.NewReader(input)
 
