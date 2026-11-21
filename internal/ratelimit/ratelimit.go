@@ -12,6 +12,8 @@ type reader struct {
 	start       time.Time
 }
 
+// NewReader wraps r and limits its reading rate to bytesPerSec.
+// A non-positive rate disables throttling.
 func NewReader(r io.Reader, bytesPerSec int64) io.Reader {
 	return &reader{
 		r:           r,
@@ -37,6 +39,8 @@ func (r *reader) Read(p []byte) (int, error) {
 
 		r.totalBytes += int64(n)
 
+		// Calculate the expected elapsed time from the total bytes read,
+		// preventing small timing errors from accumulating across reads.
 		expectedSeconds := float64(r.totalBytes) / float64(r.bytesPerSec)
 
 		const maxDuration = time.Duration(1<<63 - 1)
