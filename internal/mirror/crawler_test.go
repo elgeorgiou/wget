@@ -3,12 +3,12 @@ package mirror
 import (
 	"bytes"
 	"errors"
-	"os"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-	
+
 	"wgetclone/internal/downloader"
 )
 
@@ -413,7 +413,6 @@ func TestMirrorRootTrailingSlashVisitedOnce(t *testing.T) {
 		t.Fatalf("expected root page to be downloaded once, got %d", calls)
 	}
 }
-
 
 func TestMirrorPassesOutToDownloader(t *testing.T) {
 	chdirTemp(t)
