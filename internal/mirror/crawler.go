@@ -2,6 +2,7 @@ package mirror
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -97,6 +98,7 @@ func Mirror(
 			URL:       currentURL,
 			OutputDir: filepath.Dir(localPath),
 			FileName:  filepath.Base(localPath),
+			Out:       io.Discard,
 		})
 		if err != nil {
 			if isRoot {
