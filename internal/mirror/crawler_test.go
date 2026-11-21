@@ -473,12 +473,9 @@ func TestMirrorLogsSkippedDownload(t *testing.T) {
 }
 
 func TestMirrorRejectsPathTraversal(t *testing.T) {
-	chdirTemp(t)
-
-	downloadedURLs := make(map[string]int)
+	dir := chdirTemp(t)
 
 	mockDownload := func(cfg downloader.DownloadConfig) (string, error) {
-		downloadedURLs[cfg.URL]++
 		return saveMockFile(t, cfg, `<a href="/%2e%2e/%2e%2e/x">Escape</a>`)
 	}
 
@@ -487,8 +484,13 @@ func TestMirrorRejectsPathTraversal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(downloadedURLs) != 1 {
-		t.Fatalf("expected only the root download, got %v", downloadedURLs)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(entries) != 1 || entries[0].Name() != "example.com" {
+		t.Fatalf("expected only example.com in working dir, got %v", entries)
 	}
 }
 
