@@ -17,7 +17,7 @@ type MirrorOptions struct {
 	RejectSuffixes []string
 	ExcludePaths   []string
 	ConvertLinks   bool
-	Out            io.Writer // NEW: log destination; nil discards output
+	Out            io.Writer // log destination; nil discards output
 }
 
 // Mirror crawls rootURL and saves reachable same-domain resources to disk.
@@ -49,7 +49,7 @@ func Mirror(
 		)
 	}
 
-	// NEW: a nil writer must not crash the downloader.
+	// a nil writer must not crash the downloader.
 	out := opts.Out
 	if out == nil {
 		out = io.Discard
@@ -73,11 +73,11 @@ func Mirror(
 		}
 
 		parsedURL.Fragment = ""
-		parsedURL.Host = strings.ToLower(parsedURL.Host) // NEW
+		parsedURL.Host = strings.ToLower(parsedURL.Host)
 		currentURL = parsedURL.String()
 
 		normalizedURL := *parsedURL
-		normalizedURL.Scheme = "https" // NEW: http and https share one visited key
+		normalizedURL.Scheme = "https" // http and https share one visited key
 		normalizedURL.Path = strings.TrimRight(normalizedURL.Path, "/")
 
 		if normalizedURL.Path == "" {
@@ -108,7 +108,7 @@ func Mirror(
 			continue
 		}
 
-		// NEW: never write outside the host directory (e.g. /%2e%2e/x).
+		// never write outside the host directory (e.g. /%2e%2e/x).
 		rel, err := filepath.Rel(domainDirectory, localPath)
 		if err != nil || rel == ".." ||
 			strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
@@ -119,18 +119,17 @@ func Mirror(
 			URL:       currentURL,
 			OutputDir: filepath.Dir(localPath),
 			FileName:  filepath.Base(localPath),
-			Out:       out, // NEW: was io.Discard
+			Out:       out,
 		})
 
 		if err != nil {
 			if isRoot {
 				return fmt.Errorf("failed to download URL %q: %w", currentURL, err)
 			}
-			fmt.Fprintf(out, "skipping %s: %v\n", currentURL, err) // NEW
+			fmt.Fprintf(out, "skipping %s: %v\n", currentURL, err)
 			continue
 		}
 
-		// NEW: replaces the extension-only check.
 		if !shouldParse(parsedURL.Path, savedPath) {
 			continue
 		}
@@ -155,7 +154,6 @@ func Mirror(
 				continue
 			}
 
-			// NEW: EqualFold instead of !=
 			if !strings.EqualFold(absoluteURL.Host, parsedRootURL.Host) {
 				continue
 			}
