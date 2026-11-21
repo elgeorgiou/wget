@@ -1,4 +1,3 @@
-
 package ratelimit
 
 import (
@@ -9,10 +8,9 @@ import (
 type reader struct {
 	r           io.Reader
 	bytesPerSec int64
-	totalBytes int64
-	start      time.Time
+	totalBytes  int64
+	start       time.Time
 }
-
 
 func NewReader(r io.Reader, bytesPerSec int64) io.Reader {
 	return &reader{
@@ -23,14 +21,12 @@ func NewReader(r io.Reader, bytesPerSec int64) io.Reader {
 
 func (r *reader) Read(p []byte) (int, error) {
 
-	
 	const maxChunkSize = 32 * 1024
 
 	if len(p) > maxChunkSize {
 		p = p[:maxChunkSize]
 	}
 
-	
 	if r.bytesPerSec > 0 && r.start.IsZero() {
 		r.start = time.Now()
 	}
@@ -39,7 +35,6 @@ func (r *reader) Read(p []byte) (int, error) {
 
 	if n > 0 && r.bytesPerSec > 0 {
 
-	
 		r.totalBytes += int64(n)
 
 		expectedSeconds := float64(r.totalBytes) / float64(r.bytesPerSec)
@@ -56,7 +51,6 @@ func (r *reader) Read(p []byte) (int, error) {
 		}
 
 		elapsed := time.Since(r.start)
-
 
 		if elapsed < expected {
 			time.Sleep(expected - elapsed)
