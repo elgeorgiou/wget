@@ -69,6 +69,10 @@ func Mirror(
 
 		normalizedURL := *parsedURL
 		normalizedURL.Path = strings.TrimRight(normalizedURL.Path, "/")
+
+		if normalizedURL.Path == "" {
+			normalizedURL.Path = "/"
+		}
 		normalizedURL.RawPath = ""
 		visitedKey := normalizedURL.String()
 
@@ -100,6 +104,7 @@ func Mirror(
 			FileName:  filepath.Base(localPath),
 			Out:       io.Discard,
 		})
+
 		if err != nil {
 			if isRoot {
 				return fmt.Errorf("failed to download URL %q: %w", currentURL, err)
