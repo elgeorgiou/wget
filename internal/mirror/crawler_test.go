@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"os"
+	"io"
 	"path/filepath"
 	"strings"
 	"testing"
