@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"wgetclone/internal/downloader"
@@ -294,7 +295,7 @@ func TestMirrorConvertLinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedLink := `href="about"`
+	expectedLink := `href="about.html"`
 
 	if !strings.Contains(string(convertedContent), expectedLink) {
 		t.Fatalf(
