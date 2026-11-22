@@ -15,7 +15,8 @@ const (
 // Render returns a formatted progress bar line for the given state, for
 // example " 55.05 KiB / 55.05 KiB [====...] 100.00% 1.24 MiB/s 0s".
 // The caller writes it using \r to rewrite in place. Sizes are shown in KiB
-// when total is below 1 MiB and in MiB otherwise. When total is unknown
+// when total is below 1 MiB and in MiB otherwise, and the speed in KiB/s
+// below 1 MiB/s and in MiB/s otherwise. When total is unknown
 // (total <= 0) only the downloaded size and speed are shown. The remaining
 // time is "--" while the speed is still unknown.
 func Render(downloaded, total int64, elapsed time.Duration) string {
@@ -27,7 +28,7 @@ func Render(downloaded, total int64, elapsed time.Duration) string {
 	if elapsed > 0 {
 		speed = float64(downloaded) / elapsed.Seconds()
 	}
-	speedText := fmt.Sprintf("%.2f MiB/s", speed/mib)
+	speedText := formatSpeed(speed)
 
 	if total <= 0 {
 		size, unit := scale(downloaded, downloaded)
@@ -58,6 +59,14 @@ func scale(n, ref int64) (float64, string) {
 		return float64(n) / kib, "KiB"
 	}
 	return float64(n) / mib, "MiB"
+}
+
+// formatSpeed shows speeds below 1 MiB/s in KiB/s and faster ones in MiB/s.
+func formatSpeed(bytesPerSec float64) string {
+	if bytesPerSec < mib {
+		return fmt.Sprintf("%.2f KiB/s", bytesPerSec/kib)
+	}
+	return fmt.Sprintf("%.2f MiB/s", bytesPerSec/mib)
 }
 
 func formatETA(seconds float64) string {
