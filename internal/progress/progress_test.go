@@ -12,7 +12,7 @@ func bar(filled int) string {
 
 func TestRenderZeroProgress(t *testing.T) {
 	result := Render(0, 102400, time.Second)
-	expected := " 0.00 KiB / 100.00 KiB [" + bar(0) + "] 0.00% 0.00 MiB/s --"
+	expected := " 0.00 KiB / 100.00 KiB [" + bar(0) + "] 0.00% 0.00 KiB/s --"
 	if result != expected {
 		t.Errorf("expected %q, got %q", expected, result)
 	}
@@ -28,7 +28,7 @@ func TestRenderHalfway(t *testing.T) {
 
 func TestRenderComplete(t *testing.T) {
 	result := Render(56370, 56370, time.Second)
-	expected := " 55.05 KiB / 55.05 KiB [" + bar(48) + "] 100.00% 0.05 MiB/s 0s"
+	expected := " 55.05 KiB / 55.05 KiB [" + bar(48) + "] 100.00% 55.05 KiB/s 0s"
 	if result != expected {
 		t.Errorf("expected %q, got %q", expected, result)
 	}
@@ -36,7 +36,7 @@ func TestRenderComplete(t *testing.T) {
 
 func TestRenderKiBUnits(t *testing.T) {
 	result := Render(56370, 102400, 2*time.Second)
-	expected := " 55.05 KiB / 100.00 KiB [" + bar(26) + "] 55.05% 0.03 MiB/s 1s"
+	expected := " 55.05 KiB / 100.00 KiB [" + bar(26) + "] 55.05% 27.52 KiB/s 1s"
 	if result != expected {
 		t.Errorf("expected %q, got %q", expected, result)
 	}
@@ -59,7 +59,7 @@ func TestRenderETAMinutes(t *testing.T) {
 
 func TestRenderUnknownTotal(t *testing.T) {
 	result := Render(56370, -1, time.Second)
-	expected := " 55.05 KiB 0.05 MiB/s"
+	expected := " 55.05 KiB 55.05 KiB/s"
 	if result != expected {
 		t.Errorf("expected %q, got %q", expected, result)
 	}
@@ -79,5 +79,25 @@ func TestRenderZeroElapsed(t *testing.T) {
 	}
 	if !strings.HasSuffix(result, " --") {
 		t.Errorf("expected unknown ETA --, got %q", result)
+	}
+}
+
+func TestRenderSpeedUnits(t *testing.T) {
+	tests := []struct {
+		name       string
+		downloaded int64
+		want       string
+	}{
+		{"rate limit 300k", 300 * 1024, " 300.00 KiB/s "},
+		{"just below 1 MiB/s", 1048575, " 1024.00 KiB/s "},
+		{"exactly 1 MiB/s", 1048576, " 1.00 MiB/s "},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Render(tt.downloaded, 10*1048576, time.Second)
+			if !strings.Contains(got, tt.want) {
+				t.Errorf("expected speed %q in %q", tt.want, got)
+			}
+		})
 	}
 }
