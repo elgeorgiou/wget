@@ -73,6 +73,7 @@ Desktop.ini
 
 *.prof
 *.pprof
+/internal/app/index.html
 
 # Downloaded files (optional)
 # Uncomment ONLY if you don't want downloaded websites/files committed.
