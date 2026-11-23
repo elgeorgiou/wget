@@ -37,7 +37,7 @@ func ExtractLinks(path string) ([]string, error) {
 	text := string(content)
 
 	// Match href, src, and CSS url() references with or without quotes.
-	attrPattern := regexp.MustCompile(`(?i)(?:^|[\s<])(?:href|src)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))`)
+	attrPattern := regexp.MustCompile(`(?is)<(?:a|link|img)\b[^>]*?\s(?:href|src)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))`)
 	cssPattern := regexp.MustCompile(`(?i)url\(\s*["']?([^"')\s]+)["']?\s*\)`)
 
 	matches := attrPattern.FindAllStringSubmatch(text, -1)
