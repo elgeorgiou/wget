@@ -90,7 +90,7 @@ func DownloadFile(cfg DownloadConfig) (savedPath string, err error) {
 			return "", err
 		}
 		name := filepath.Base(parsedURL.Path)
-		if name == "." || name == "/" || name == "" {
+		if strings.HasSuffix(parsedURL.Path, "/") || name == "." || name == "/" || name == "" {
 			name = "index.html"
 		}
 		filename = name
