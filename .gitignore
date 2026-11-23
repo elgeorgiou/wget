@@ -10,6 +10,7 @@
 # Executables
 
 wget-clone
+/wget
 wgetclone
 main
 
