@@ -192,3 +192,25 @@ func TestExtractLinksEntities(t *testing.T) {
 		t.Errorf("expected link '/search?a=1&b=2', got '%s'", links[0])
 	}
 }
+func TestExtractLinksIgnoresDataHref(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "index.html")
+
+	content := `<a data-href="/wrong" href="/correct">About</a>`
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	links, err := ExtractLinks(path)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(links) != 1 {
+		t.Fatalf("expected one link, got %d", len(links))
+	}
+
+	if links[0] != "/correct" {
+		t.Errorf("expected '/correct', got '%s'", links[0])
+	}
+}
