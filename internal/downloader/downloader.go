@@ -70,9 +70,11 @@ func DownloadFile(cfg DownloadConfig) (savedPath string, err error) {
 	if cfg.Out != nil {
 		fmt.Fprintf(cfg.Out, "sending request, awaiting response... status %s\n", resp.Status)
 		if resp.ContentLength >= 0 {
-			decimal := float64(resp.ContentLength)
-			mb := decimal / 1000000
-			fmt.Fprintf(cfg.Out, "content size: %d [~%.2fMB]\n", resp.ContentLength, mb)
+			if resp.ContentLength >= 1_000_000_000 {
+				fmt.Fprintf(cfg.Out, "content size: %d [~%.2fGB]\n", resp.ContentLength, float64(resp.ContentLength)/1e9)
+			} else {
+				fmt.Fprintf(cfg.Out, "content size: %d [~%.2fMB]\n", resp.ContentLength, float64(resp.ContentLength)/1e6)
+			}
 		} else {
 			fmt.Fprintf(cfg.Out, "content size: unknown\n")
 		}
