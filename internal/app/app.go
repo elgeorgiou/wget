@@ -13,6 +13,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -57,15 +58,6 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	if *background {
-		file, err := os.Create("wget-log")
-		if err != nil {
-			return fmt.Errorf("cannot create log file: %w", err)
-		}
-		output = file
-		fmt.Fprintf(stdout, "Output will be written to \"wget-log\".\n")
-		defer file.Close()
-	}
 	var rateBytes int64
 	if *ratelimit != "" {
 		suffix := (*ratelimit)[len(*ratelimit)-1]
@@ -90,7 +82,19 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		if partNumber <= 0 {
 			return errors.New("rate-limit must be positive")
 		}
+		if partNumber > math.MaxInt64/multiplier {
+			return errors.New("rate-limit too large")
+		}
 		rateBytes = partNumber * multiplier
+	}
+	if *background {
+		file, err := os.Create("wget-log")
+		if err != nil {
+			return fmt.Errorf("cannot create log file: %w", err)
+		}
+		output = file
+		fmt.Fprintf(stdout, "Output will be written to \"wget-log\".\n")
+		defer file.Close()
 	}
 	// Handle multi-file downloads before single-file and mirror operations.
 	if *inputFile != "" {
