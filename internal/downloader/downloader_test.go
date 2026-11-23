@@ -16,21 +16,42 @@ func TestDownloadFileStatus200(t *testing.T) {
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-
+				w.Write([]byte("Hello World"))
 			},
 		),
 	)
 	defer server.Close()
+
 	dir := t.TempDir()
+	var output bytes.Buffer
+
 	cfg := DownloadConfig{
 		URL:       server.URL,
 		OutputDir: dir,
 		FileName:  "test",
+		Out:       &output,
 	}
+
 	_, err := DownloadFile(cfg)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
+	}
 
+	log := output.String()
+	expected := []string{
+		"start at ",
+		"sending request, awaiting response... status 200 OK",
+		"content size: 11 [~0.00MB]",
+		"saving file to: ",
+	}
+
+	position := 0
+	for _, line := range expected {
+		index := strings.Index(log[position:], line)
+		if index == -1 {
+			t.Fatalf("Expected %q in order, got log:\n%s", line, log)
+		}
+		position += index + len(line)
 	}
 }
 func TestDownloadFileStatus404(t *testing.T) {
@@ -38,22 +59,29 @@ func TestDownloadFileStatus404(t *testing.T) {
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusNotFound)
-
 			},
 		),
 	)
 	defer server.Close()
+
+	dir := t.TempDir()
 	cfg := DownloadConfig{
-		URL: server.URL,
+		URL:       server.URL + "/missing.txt",
+		OutputDir: dir,
 	}
+
 	_, err := DownloadFile(cfg)
 	if err == nil {
 		t.Fatalf("Expected error, got %v", err)
 	}
 	if contains404 := strings.Contains(err.Error(), "404"); !contains404 {
-		t.Errorf("Error message should contain status code 404,got %q", err.Error())
+		t.Errorf("Error message should contain status code 404, got %q", err.Error())
 	}
 
+	expectedPath := filepath.Join(dir, "missing.txt")
+	if _, err := os.Stat(expectedPath); !os.IsNotExist(err) {
+		t.Fatalf("Expected file %s not to exist, got %v", expectedPath, err)
+	}
 }
 func TestDownloadFileCustomName(t *testing.T) {
 	server := httptest.NewServer(
@@ -255,5 +283,40 @@ func TestDownloadFileTimestamps(t *testing.T) {
 	if len(matches) != 2 {
 		t.Errorf("Expected 2 timestamps, found %d in output %q", len(matches), buffer.String())
 
+	}
+}
+func TestDownloadFileNoProgress(t *testing.T) {
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("Hello World"))
+			},
+		),
+	)
+	defer server.Close()
+
+	var output bytes.Buffer
+	dir := t.TempDir()
+
+	cfg := DownloadConfig{
+		URL:        server.URL,
+		OutputDir:  dir,
+		FileName:   "test",
+		Out:        &output,
+		NoProgress: true,
+	}
+
+	_, err := DownloadFile(cfg)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if strings.Contains(output.String(), "\r") {
+		t.Errorf("Expected no progress bar, got %q", output.String())
+	}
+
+	if !strings.Contains(output.String(), "Downloaded [") {
+		t.Errorf("Expected download summary, got %q", output.String())
 	}
 }
