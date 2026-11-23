@@ -107,7 +107,7 @@ func DownloadFile(cfg DownloadConfig) (savedPath string, err error) {
 	if cfg.OutputDir != "" {
 		err = os.MkdirAll(cfg.OutputDir, 0755)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("cannot create directory: %w", err)
 		}
 	}
 	savedPath = filepath.Join(cfg.OutputDir, filename)
@@ -122,7 +122,7 @@ func DownloadFile(cfg DownloadConfig) (savedPath string, err error) {
 	}
 	file, err := os.Create(savedPath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("cannot create file: %w", err)
 	}
 	defer file.Close()
 	buffer := make([]byte, 64*1024)
@@ -141,7 +141,7 @@ func DownloadFile(cfg DownloadConfig) (savedPath string, err error) {
 		if n > 0 {
 			w, err := file.Write(buffer[:n])
 			if err != nil {
-				return "", err
+				return "", fmt.Errorf("cannot write file: %w", err)
 			}
 			downloaded += int64(w)
 			// Render progress only when enabled and the total size is known.
