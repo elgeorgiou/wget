@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -602,5 +603,95 @@ func TestRunInvalidRateLimitDoesNotCreateLog(t *testing.T) {
 
 	if _, err := os.Stat("wget-log"); !os.IsNotExist(err) {
 		t.Fatalf("Expected wget-log not to exist, got %v", err)
+	}
+}
+func TestRunCustomName(t *testing.T) {
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("test file content"))
+			},
+		),
+	)
+	defer server.Close()
+
+	dir := t.TempDir()
+	args := []string{"-O=custom.txt", "-P", dir, server.URL + "/original.txt"}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	err := Run(args, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	expectedPath := filepath.Join(dir, "custom.txt")
+	content, err := os.ReadFile(expectedPath)
+	if err != nil {
+		t.Fatalf("Expected file %s to exist, got %v", expectedPath, err)
+	}
+
+	if string(content) != "test file content" {
+		t.Fatalf("Expected test file content, got %q", string(content))
+	}
+}
+func TestRunNotFound(t *testing.T) {
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusNotFound)
+			},
+		),
+	)
+	defer server.Close()
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	args := []string{server.URL + "/missing.txt"}
+
+	err := Run(args, &stdout, &stderr)
+	if err == nil {
+		t.Fatal("Expected error for 404 response, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "404") {
+		t.Fatalf("Expected error containing 404, got %q", err.Error())
+	}
+}
+func TestRunTildeOutputDir(t *testing.T) {
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("test file content"))
+			},
+		),
+	)
+	defer server.Close()
+
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+
+	args := []string{"-P=~/x", server.URL + "/file.txt"}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	err := Run(args, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	expectedPath := filepath.Join(dir, "x", "file.txt")
+	content, err := os.ReadFile(expectedPath)
+	if err != nil {
+		t.Fatalf("Expected file %s to exist, got %v", expectedPath, err)
+	}
+
+	if string(content) != "test file content" {
+		t.Fatalf("Expected test file content, got %q", string(content))
 	}
 }
