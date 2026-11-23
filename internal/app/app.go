@@ -60,7 +60,7 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	if *background {
 		file, err := os.Create("wget-log")
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot create log file: %w", err)
 		}
 		output = file
 		fmt.Fprintf(stdout, "Output will be written to \"wget-log\".\n")
@@ -85,7 +85,7 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		}
 		partNumber, err := strconv.ParseInt(part, 10, 64)
 		if err != nil {
-			return errors.New("invalid rate-limit value")
+			return fmt.Errorf("invalid rate-limit value: %w", err)
 		}
 		if partNumber <= 0 {
 			return errors.New("rate-limit must be positive")
@@ -96,7 +96,7 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	if *inputFile != "" {
 		content, err := os.ReadFile(*inputFile)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot open input file: %w", err)
 		}
 		urls := strings.Fields(string(content))
 		basecfg := downloader.DownloadConfig{
