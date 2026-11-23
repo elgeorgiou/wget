@@ -102,6 +102,42 @@ func TestDownloadFileCustomDir(t *testing.T) {
 		t.Errorf("Expected %v, got %v", expected, savedPath)
 	}
 }
+func TestDownloadFileTrailingSlash(t *testing.T) {
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("Hello World"))
+			},
+		),
+	)
+	defer server.Close()
+
+	dir := t.TempDir()
+	cfg := DownloadConfig{
+		URL:       server.URL + "/about/",
+		OutputDir: dir,
+	}
+
+	savedPath, err := DownloadFile(cfg)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	expected := filepath.Join(dir, "index.html")
+	if savedPath != expected {
+		t.Errorf("Expected %v, got %v", expected, savedPath)
+	}
+
+	content, err := os.ReadFile(expected)
+	if err != nil {
+		t.Fatalf("Expected index.html to exist, got %v", err)
+	}
+
+	if string(content) != "Hello World" {
+		t.Errorf("Expected Hello World, got %q", string(content))
+	}
+}
 func TestDownloadFileCombinedFlags(t *testing.T) {
 	server := httptest.NewServer(
 		http.HandlerFunc(
