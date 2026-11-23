@@ -100,6 +100,7 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		}
 		urls := strings.Fields(string(content))
 		basecfg := downloader.DownloadConfig{
+			OutputDir:  *outputDir,
 			RateLimit:  rateBytes,
 			Out:        output,
 			NoProgress: *background,
