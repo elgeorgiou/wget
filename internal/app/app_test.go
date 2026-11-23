@@ -540,3 +540,45 @@ func TestRunMultipleURLs(t *testing.T) {
 		t.Fatalf("Expected error %q, got %q", expected, err.Error())
 	}
 }
+func TestRunRateLimitOverflow(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	args := []string{"--rate-limit=99999999999999M", "https://example.com/file.zip"}
+
+	err := Run(args, &stdout, &stderr)
+	if err == nil {
+		t.Fatal("Expected error for rate-limit overflow, got nil")
+	}
+
+	if err.Error() != "rate-limit too large" {
+		t.Fatalf("Expected rate-limit too large, got %q", err.Error())
+	}
+}
+
+func TestRunInvalidRateLimitDoesNotCreateLog(t *testing.T) {
+	dir := t.TempDir()
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	defer os.Chdir(originalDir)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	args := []string{"-B", "--rate-limit=invalid", "https://example.com/file.zip"}
+
+	err = Run(args, &stdout, &stderr)
+	if err == nil {
+		t.Fatal("Expected error for invalid rate limit, got nil")
+	}
+
+	if _, err := os.Stat("wget-log"); !os.IsNotExist(err) {
+		t.Fatalf("Expected wget-log not to exist, got %v", err)
+	}
+}
