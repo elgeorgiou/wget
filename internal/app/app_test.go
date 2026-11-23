@@ -136,6 +136,48 @@ func TestRunMultiFile(t *testing.T) {
 		t.Fatalf("Expected file2.txt file to exist,got %v", err)
 	}
 }
+func TestRunMultiFileCustomDir(t *testing.T) {
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("test file content"))
+			},
+		),
+	)
+	defer server.Close()
+
+	dir := t.TempDir()
+	outputDir := filepath.Join(dir, "downloads")
+	filePath := filepath.Join(dir, "links.txt")
+
+	content := server.URL + "/file1.txt\n" + server.URL + "/file2.txt"
+	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	args := []string{"-i", filePath, "-P", outputDir}
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	err := Run(args, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	for _, name := range []string{"file1.txt", "file2.txt"} {
+		expectedPath := filepath.Join(outputDir, name)
+
+		content, err := os.ReadFile(expectedPath)
+		if err != nil {
+			t.Fatalf("Expected file %s to exist, got %v", expectedPath, err)
+		}
+
+		if string(content) != "test file content" {
+			t.Fatalf("Expected test file content, got %q", string(content))
+		}
+	}
+}
 func TestRunMirror(t *testing.T) {
 	server := httptest.NewServer(
 		http.HandlerFunc(
