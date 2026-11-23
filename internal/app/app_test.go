@@ -507,3 +507,36 @@ func TestRunMirrorExcludeLong(t *testing.T) {
 		t.Fatalf("Expected file %s to not exist, got %v", excludedPath, err)
 	}
 }
+func TestRunUnexpectedFlagAfterURL(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	args := []string{"https://example.com/file.txt", "-O=x"}
+
+	err := Run(args, &stdout, &stderr)
+	if err == nil {
+		t.Fatal("Expected error for unexpected argument, got nil")
+	}
+
+	expected := "unexpected arguments after url: -O=x"
+	if err.Error() != expected {
+		t.Fatalf("Expected error %q, got %q", expected, err.Error())
+	}
+}
+
+func TestRunMultipleURLs(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	args := []string{"https://example.com/a", "https://example.com/b"}
+
+	err := Run(args, &stdout, &stderr)
+	if err == nil {
+		t.Fatal("Expected error for multiple URLs, got nil")
+	}
+
+	expected := "unexpected arguments after url: https://example.com/b"
+	if err.Error() != expected {
+		t.Fatalf("Expected error %q, got %q", expected, err.Error())
+	}
+}
