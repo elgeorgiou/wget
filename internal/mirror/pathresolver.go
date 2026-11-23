@@ -8,8 +8,9 @@ import (
 )
 
 // ResolveLocalPath maps a URL to a local file path under hostDir. URLs whose
-// path has a file extension keep their path; the site root and directory-style
-// URLs map to an index.html inside the matching folder. ".." segments are
+// path has a file extension keep their path; the site root, URLs ending in
+// "/" and URLs without an extension map to an index.html inside the matching
+// folder. ".." segments are
 // cleaned so the result never leaves hostDir. It returns an error if rawURL
 // cannot be parsed.
 func ResolveLocalPath(hostDir, rawURL string) (string, error) {
@@ -22,7 +23,9 @@ func ResolveLocalPath(hostDir, rawURL string) (string, error) {
 	if cleanPath == "/" {
 		return filepath.Join(hostDir, "index.html"), nil
 	}
-	if path.Ext(cleanPath) != "" {
+	// path.Clean drops the trailing slash, so check it on the original path.
+	isDir := strings.HasSuffix(parsedURL.Path, "/")
+	if !isDir && path.Ext(cleanPath) != "" {
 		return filepath.Join(hostDir, filepath.FromSlash(cleanPath)), nil
 	}
 	return filepath.Join(hostDir, filepath.FromSlash(cleanPath), "index.html"), nil
