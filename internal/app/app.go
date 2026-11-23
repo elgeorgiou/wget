@@ -144,8 +144,16 @@ func Run(args []string, stdout, stderr io.Writer) error {
 			RejectSuffixes: rejectSuffixes,
 			ExcludePaths:   excludePaths,
 			ConvertLinks:   *convertLinks,
+			Out:            output,
 		}
-		err = mirror.Mirror(remainingArgs[0], opts, downloader.DownloadFile)
+		dl := func(cfg downloader.DownloadConfig) (string, error) {
+			cfg.RateLimit = rateBytes
+			cfg.Out = output
+			cfg.NoProgress = true
+			return downloader.DownloadFile(cfg)
+		}
+
+		err = mirror.Mirror(remainingArgs[0], opts, dl)
 		if err != nil {
 			return err
 		}
