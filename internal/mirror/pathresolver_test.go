@@ -113,6 +113,32 @@ func TestResolveLocalPathDirNoExt(t *testing.T) {
 	}
 }
 
+// A trailing slash means a directory, even when the last segment looks like
+// a file name, so files inside it can still be saved.
+func TestResolveLocalPathTrailingSlash(t *testing.T) {
+	tests := []struct {
+		url  string
+		want string
+	}{
+		{"https://www.example.com/v1.2/", "www.example.com/v1.2/index.html"},
+		{"https://www.example.com/jquery-3.6.0/", "www.example.com/jquery-3.6.0/index.html"},
+		{"https://www.example.com/v1.2/app.css", "www.example.com/v1.2/app.css"},
+		{"https://www.example.com/about/", "www.example.com/about/index.html"},
+		{"https://www.example.com/v1.2", "www.example.com/v1.2"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.url, func(t *testing.T) {
+			got, err := ResolveLocalPath("www.example.com", tt.url)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Errorf("ResolveLocalPath(%q) = %q, want %q", tt.url, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestResolveLocalPathStaysInHostDir(t *testing.T) {
 	tests := []struct {
 		url  string
