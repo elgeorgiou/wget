@@ -214,3 +214,19 @@ func TestExtractLinksIgnoresDataHref(t *testing.T) {
 		t.Errorf("expected '/correct', got '%s'", links[0])
 	}
 }
+func TestExtractLinksIgnoresScript(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "page.html")
+
+	if err := os.WriteFile(path, []byte(`<script src="/a.js"></script>`), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	links, err := ExtractLinks(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(links) != 0 {
+		t.Errorf("expected no links, got %v", links)
+	}
+}
