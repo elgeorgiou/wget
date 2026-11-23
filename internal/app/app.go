@@ -117,6 +117,9 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	if len(remainingArgs) == 0 {
 		return errors.New("no URL provided")
 	}
+	if len(remainingArgs) > 1 {
+		return fmt.Errorf("unexpected arguments after url: %s", strings.Join(remainingArgs[1:], " "))
+	}
 	// Dispatch mirror requests separately from single-file downloads.
 	if *mirrorFlag {
 		var rejectSuffixes []string
