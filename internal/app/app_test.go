@@ -29,10 +29,21 @@ func TestRunSingleDownload(t *testing.T) {
 		),
 	)
 	defer server.Close()
+
+	dir := t.TempDir()
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if err = os.Chdir(dir); err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	defer os.Chdir(originalDir)
+
 	args := []string{server.URL}
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	err := Run(args, &stdout, &stderr)
+	err = Run(args, &stdout, &stderr)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -86,11 +97,22 @@ func TestRunRateLimit(t *testing.T) {
 		),
 	)
 	defer server.Close()
+
+	dir := t.TempDir()
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if err = os.Chdir(dir); err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	defer os.Chdir(originalDir)
+
 	args := []string{"--rate-limit=400k", server.URL}
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	start := time.Now()
-	err := Run(args, &stdout, &stderr)
+	err = Run(args, &stdout, &stderr)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
