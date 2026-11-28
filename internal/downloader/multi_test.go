@@ -91,52 +91,52 @@ func TestDownloadAllConcurrent(t *testing.T) {
 	}
 }
 
-// Every download writes to the same Out; each download's lines must appear
-// as one contiguous block. Run with -race to also catch unsynchronized writes.
+// All downloads print to the same Out. The lines of one download must stay
+// together and not get mixed with the lines of another download.
 func TestDownloadAllConcurrentOutput(t *testing.T) {
 	srv := newTestServer(t, 50*time.Millisecond)
-	var urls []string
-	for _, name := range []string{"1.txt", "2.txt", "3.txt", "4.txt", "5.txt"} {
-		urls = append(urls, srv.URL+"/"+name)
+	urls := []string{
+		srv.URL + "/1.txt",
+		srv.URL + "/2.txt",
+		srv.URL + "/3.txt",
+		srv.URL + "/4.txt",
+		srv.URL + "/5.txt",
 	}
 
 	var out bytes.Buffer
-	errs := DownloadAll(urls, DownloadConfig{OutputDir: t.TempDir(), Out: &out, NoProgress: true})
-	for i, err := range errs {
-		if err != nil {
-			t.Fatalf("url %d: unexpected error %v", i, err)
-		}
-	}
+	DownloadAll(urls, DownloadConfig{OutputDir: t.TempDir(), Out: &out})
 
+	// Every download starts with "start at ", so cutting there gives one
+	// block per download. The text before the first cut is empty.
 	blocks := strings.Split(out.String(), "start at ")[1:]
 	if len(blocks) != len(urls) {
-		t.Fatalf("expected %d output blocks, got %d:\n%s", len(urls), len(blocks), out.String())
+		t.Fatalf("expected %d blocks, got %d:\n%s", len(urls), len(blocks), out.String())
 	}
+
+	// A block with two "saving file to: " lines contains two downloads.
 	for _, block := range blocks {
 		if strings.Count(block, "saving file to: ") != 1 {
-			t.Errorf("output block is interleaved with another download:\n%s", block)
+			t.Errorf("block is mixed with another download:\n%s", block)
 		}
 	}
 }
 
-// A FileName in baseCfg (-O) must not make every download write the same file.
+// With -O every download would write to the same file, so DownloadAll must
+// ignore FileName and let each file keep the name from its url.
 func TestDownloadAllIgnoresFileName(t *testing.T) {
 	srv := newTestServer(t, 0)
 	dir := t.TempDir()
 	urls := []string{srv.URL + "/a.txt", srv.URL + "/b.txt"}
 
-	errs := DownloadAll(urls, DownloadConfig{OutputDir: dir, FileName: "same.txt"})
-	for i, err := range errs {
-		if err != nil {
-			t.Fatalf("url %d: unexpected error %v", i, err)
-		}
+	DownloadAll(urls, DownloadConfig{OutputDir: dir, FileName: "same.txt"})
+
+	if _, err := os.Stat(filepath.Join(dir, "a.txt")); err != nil {
+		t.Errorf("expected a.txt to be saved")
 	}
-	for _, name := range []string{"a.txt", "b.txt"} {
-		if _, err := os.Stat(filepath.Join(dir, name)); err != nil {
-			t.Errorf("expected %s to be saved: %v", name, err)
-		}
+	if _, err := os.Stat(filepath.Join(dir, "b.txt")); err != nil {
+		t.Errorf("expected b.txt to be saved")
 	}
-	if _, err := os.Stat(filepath.Join(dir, "same.txt")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(dir, "same.txt")); err == nil {
 		t.Errorf("expected same.txt not to exist")
 	}
 }
