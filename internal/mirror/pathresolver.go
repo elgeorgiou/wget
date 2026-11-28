@@ -7,12 +7,24 @@ import (
 	"strings"
 )
 
-// ResolveLocalPath maps a URL to a local file path under hostDir. URLs whose
-// path has a file extension keep their path; the site root, URLs ending in
-// "/" and URLs without an extension map to an index.html inside the matching
-// folder. ".." segments are
-// cleaned so the result never leaves hostDir. It returns an error if rawURL
-// cannot be parsed.
+// ResolveLocalPath maps a URL to the local file path where it is saved.
+//
+// URLs whose path has a file extension keep their path. The site root, URLs
+// ending in "/" and URLs without an extension map to an index.html inside the
+// matching folder. ".." segments are cleaned so the result never leaves
+// hostDir. For example:
+//
+//	https://www.example.com/js/app.js  ->  www.example.com/js/app.js
+//	https://www.example.com/           ->  www.example.com/index.html
+//	https://www.example.com/about      ->  www.example.com/about/index.html
+//
+// Parameters:
+//   - hostDir: The folder of the mirrored site (e.g., "www.example.com").
+//   - rawURL: The URL to map.
+//
+// Returns:
+//   - The local file path under hostDir.
+//   - An error if rawURL cannot be parsed.
 func ResolveLocalPath(hostDir, rawURL string) (string, error) {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
@@ -31,9 +43,20 @@ func ResolveLocalPath(hostDir, rawURL string) (string, error) {
 	return filepath.Join(hostDir, filepath.FromSlash(cleanPath), "index.html"), nil
 }
 
-// IsRejected returns true if the URL path ends with any of the given file
-// suffixes (case-insensitive). A suffix may be given with or without the
-// leading dot ("jpg" or ".jpg"); empty suffixes are ignored.
+// IsRejected reports whether the URL path ends with one of the given file
+// suffixes, for the -R flag.
+//
+// The match is case-insensitive and ignores the query string. A suffix may be
+// given with or without the leading dot ("jpg" or ".jpg"). Empty suffixes are
+// ignored, so a value like "-R=jpg," does not reject every URL.
+//
+// Parameters:
+//   - rawURL: The URL to check.
+//   - suffixes: The file suffixes to reject (e.g., []string{"jpg", "gif"}).
+//
+// Returns:
+//   - true if the URL must be skipped, false otherwise or if rawURL cannot be
+//     parsed.
 func IsRejected(rawURL string, suffixes []string) bool {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
@@ -56,10 +79,20 @@ func IsRejected(rawURL string, suffixes []string) bool {
 	return false
 }
 
-// IsExcluded returns true if the URL path is inside any of the given
-// directories. A prefix matches whole path segments only, so "/css" excludes
-// "/css/a.css" but not "/csslib/". Leading and trailing slashes are optional;
-// empty prefixes are ignored.
+// IsExcluded reports whether the URL path is inside one of the given
+// directories, for the -X flag.
+//
+// A prefix matches whole path segments only, so "/css" excludes "/css/a.css"
+// but not "/csslib/". Leading and trailing slashes are optional ("/js", "js"
+// and "/js/" are the same). Empty prefixes are ignored.
+//
+// Parameters:
+//   - rawURL: The URL to check.
+//   - prefixes: The directories to exclude (e.g., []string{"/js", "/assets"}).
+//
+// Returns:
+//   - true if the URL must be skipped, false otherwise or if rawURL cannot be
+//     parsed.
 func IsExcluded(rawURL string, prefixes []string) bool {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
