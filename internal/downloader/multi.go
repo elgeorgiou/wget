@@ -14,31 +14,38 @@ import (
 func DownloadAll(urls []string, baseCfg DownloadConfig) []error {
 	errs := make([]error, len(urls))
 	var wg sync.WaitGroup
-	var outMu sync.Mutex
+	var printing sync.Mutex
 
 	for i, link := range urls {
 		wg.Add(1)
-		go func(index int, link string) {
+		go func() {
 			defer wg.Done()
 
-			cfg := baseCfg
-			cfg.URL = link
-			cfg.FileName = ""
-
-			var buf bytes.Buffer
-			if baseCfg.Out != nil {
-				cfg.Out = &buf
-			}
-
-			_, errs[index] = DownloadFile(cfg)
+			output, err := downloadOne(link, baseCfg)
+			errs[i] = err
 
 			if baseCfg.Out != nil {
-				outMu.Lock()
-				baseCfg.Out.Write(buf.Bytes())
-				outMu.Unlock()
+				// Only one download prints at a time.
+				printing.Lock()
+				baseCfg.Out.Write(output)
+				printing.Unlock()
 			}
-		}(i, link)
+		}()
 	}
 	wg.Wait()
 	return errs
+}
+
+// downloadOne downloads link and returns everything the download printed,
+// instead of printing it straight away.
+func downloadOne(link string, baseCfg DownloadConfig) ([]byte, error) {
+	var output bytes.Buffer
+
+	cfg := baseCfg
+	cfg.URL = link
+	cfg.FileName = ""
+	cfg.Out = &output
+
+	_, err := DownloadFile(cfg)
+	return output.Bytes(), err
 }
