@@ -8,15 +8,23 @@ import (
 	"strings"
 )
 
-// RewriteAll walks hostDir and rewrites every link in .html, .htm and .css
-// files that points to a downloaded file of the mirrored host (absolute,
-// root-relative or relative) into a path relative to the file that contains
-// it, so the site works offline. Directory links become their index.html.
-// Targets are resolved with ResolveLocalPath, the same mapping the crawler
-// uses to save files. Links to other hosts, mailto:, data:, fragment-only
-// links and links to files that were not downloaded are left unchanged.
-// hostDir's base name must be the mirrored host, e.g. "www.example.com".
-// Files without changes are not rewritten.
+// RewriteAll rewrites the links in the mirrored site so it works offline, for
+// the --convert-links flag.
+//
+// It walks hostDir and, in every .html, .htm and .css file, turns each link to
+// a downloaded file of the mirrored host (absolute, root-relative or relative)
+// into a path relative to the file that contains it. Directory links become
+// their index.html. Targets are resolved with ResolveLocalPath, the same
+// mapping the crawler uses to save files. Links to other hosts, mailto:,
+// data:, fragment-only links and links to files that were not downloaded are
+// left unchanged. Files without changes are not written again.
+//
+// Parameters:
+//   - hostDir: The folder of the mirrored site. Its base name must be the host
+//     (e.g., "www.example.com").
+//
+// Returns:
+//   - An error if a file cannot be read or written, nil otherwise.
 func RewriteAll(hostDir string) error {
 	host := filepath.Base(hostDir)
 	attrLinkPattern := regexp.MustCompile(`(?i)(\s(?:href|src)\s*=\s*)(["'])([^"']*)(["'])`)
